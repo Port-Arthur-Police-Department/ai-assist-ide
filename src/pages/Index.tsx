@@ -1,11 +1,12 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
 import { CodeEditor } from "@/components/CodeEditor";
 import { PreviewPanel } from "@/components/PreviewPanel";
 import { ChatPanel } from "@/components/ChatPanel";
 import { SettingsDialog } from "@/components/SettingsDialog";
+import { FileManager } from "@/components/FileManager";
 import { Button } from "@/components/ui/button";
-import { Settings, Code2, FileCode } from "lucide-react";
+import { Settings, Code2, FileCode, FolderOpen } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -90,14 +91,97 @@ for i in range(10):
     print(f"Fib({i}) = {fibonacci(i)}")`,
 };
 
+interface FileItem {
+  name: string;
+  content: string;
+  language: string;
+}
+
 const Index = () => {
-  const [code, setCode] = useState(DEFAULT_CODE.html);
-  const [language, setLanguage] = useState("html");
+  const [files, setFiles] = useState<FileItem[]>([
+    {
+      name: "index.html",
+      content: DEFAULT_CODE.html,
+      language: "html",
+    },
+  ]);
+  const [currentFileIndex, setCurrentFileIndex] = useState(0);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [fileManagerOpen, setFileManagerOpen] = useState(false);
+
+  const currentFile = files[currentFileIndex];
+
+  useEffect(() => {
+    const savedFiles = localStorage.getItem("ide_files");
+    if (savedFiles) {
+      try {
+        const parsed = JSON.parse(savedFiles);
+        if (parsed.length > 0) {
+          setFiles(parsed);
+        }
+      } catch (e) {
+        console.error("Failed to load saved files:", e);
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem("ide_files", JSON.stringify(files));
+  }, [files]);
+
+  const handleCodeChange = (newCode: string) => {
+    setFiles((prev) =>
+      prev.map((file, idx) =>
+        idx === currentFileIndex ? { ...file, content: newCode } : file
+      )
+    );
+  };
 
   const handleLanguageChange = (newLang: string) => {
-    setLanguage(newLang);
-    setCode(DEFAULT_CODE[newLang as keyof typeof DEFAULT_CODE] || "");
+    setFiles((prev) =>
+      prev.map((file, idx) =>
+        idx === currentFileIndex ? { ...file, language: newLang } : file
+      )
+    );
+  };
+
+  const handleFileSelect = (file: FileItem) => {
+    const index = files.findIndex((f) => f.name === file.name);
+    if (index !== -1) {
+      setCurrentFileIndex(index);
+    }
+  };
+
+  const handleFileCreate = (file: FileItem) => {
+    setFiles((prev) => [...prev, file]);
+    setCurrentFileIndex(files.length);
+  };
+
+  const handleFileDelete = (fileName: string) => {
+    if (files.length === 1) return; // Don't delete the last file
+
+    const index = files.findIndex((f) => f.name === fileName);
+    if (index !== -1) {
+      setFiles((prev) => prev.filter((_, idx) => idx !== index));
+      if (currentFileIndex >= index && currentFileIndex > 0) {
+        setCurrentFileIndex(currentFileIndex - 1);
+      }
+    }
+  };
+
+  const handleFilesImport = (importedFiles: FileItem[]) => {
+    setFiles((prev) => {
+      const newFiles = [...prev];
+      importedFiles.forEach((imported) => {
+        const existingIndex = newFiles.findIndex((f) => f.name === imported.name);
+        if (existingIndex !== -1) {
+          newFiles[existingIndex] = imported;
+        } else {
+          newFiles.push(imported);
+        }
+      });
+      return newFiles;
+    });
   };
 
   return (
@@ -112,7 +196,7 @@ const Index = () => {
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2">
             <FileCode className="h-4 w-4 text-muted-foreground" />
-            <Select value={language} onValueChange={handleLanguageChange}>
+            <Select value={currentFile.language} onValueChange={handleLanguageChange}>
               <SelectTrigger className="w-[150px]">
                 <SelectValue />
               </SelectTrigger>
@@ -121,9 +205,18 @@ const Index = () => {
                 <SelectItem value="javascript">JavaScript</SelectItem>
                 <SelectItem value="typescript">TypeScript</SelectItem>
                 <SelectItem value="python">Python</SelectItem>
+                <SelectItem value="css">CSS</SelectItem>
               </SelectContent>
             </Select>
           </div>
+
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setFileManagerOpen(true)}
+          >
+            <FolderOpen className="h-5 w-5" />
+          </Button>
 
           <Button
             variant="ghost"
@@ -141,14 +234,15 @@ const Index = () => {
           {/* Code Editor Panel */}
           <ResizablePanel defaultSize={35} minSize={20}>
             <div className="h-full flex flex-col">
-              <div className="px-4 py-2 bg-card border-b border-border">
+              <div className="px-4 py-2 bg-card border-b border-border flex items-center justify-between">
                 <h3 className="text-sm font-semibold">Code Editor</h3>
+                <span className="text-xs text-muted-foreground">{currentFile.name}</span>
               </div>
               <div className="flex-1">
                 <CodeEditor
-                  value={code}
-                  onChange={setCode}
-                  language={language}
+                  value={currentFile.content}
+                  onChange={handleCodeChange}
+                  language={currentFile.language}
                 />
               </div>
             </div>
@@ -158,7 +252,7 @@ const Index = () => {
 
           {/* Preview Panel */}
           <ResizablePanel defaultSize={35} minSize={20}>
-            <PreviewPanel code={code} language={language} />
+            <PreviewPanel code={currentFile.content} language={currentFile.language} />
           </ResizablePanel>
 
           <ResizableHandle withHandle />
@@ -166,15 +260,25 @@ const Index = () => {
           {/* AI Chat Panel */}
           <ResizablePanel defaultSize={30} minSize={20}>
             <ChatPanel
-              code={code}
-              language={language}
-              onApplyCode={setCode}
+              code={currentFile.content}
+              language={currentFile.language}
+              onApplyCode={handleCodeChange}
             />
           </ResizablePanel>
         </ResizablePanelGroup>
       </div>
 
       <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
+      <FileManager
+        open={fileManagerOpen}
+        onOpenChange={setFileManagerOpen}
+        currentFile={currentFile}
+        files={files}
+        onFileSelect={handleFileSelect}
+        onFileCreate={handleFileCreate}
+        onFileDelete={handleFileDelete}
+        onFilesImport={handleFilesImport}
+      />
     </div>
   );
 };
