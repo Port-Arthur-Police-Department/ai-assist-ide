@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write  # Changed to write for committing lock file
+  contents: read
   pages: write
   id-token: write
 
@@ -16,25 +16,15 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
       
       - name: Setup Node.js 20
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          # No cache since we don't have lock file initially
+          # Remove cache since we don't have a lock file
       
-      - name: Install dependencies and generate lock file
+      - name: Install dependencies
         run: npm install --legacy-peer-deps
-      
-      - name: Commit package-lock.json
-        run: |
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
-          git add package-lock.json
-          git diff --staged --quiet || git commit -m "chore: generate package-lock.json"
-          git push
       
       - name: Build for GitHub Pages
         run: npm run build:gh-pages
