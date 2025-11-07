@@ -15,7 +15,7 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
-  base: mode === "production" ? "/vite_react_shadcn_ts/" : "/",
+  base: mode === "production" ? "/ai-assist-ide/" : "/", // Make sure this matches your repo name exactly
   build: {
     outDir: "dist",
     sourcemap: false,
