@@ -10,9 +10,8 @@
     "build:gh-pages": "vite build --mode production",
     "lint": "eslint .",
     "preview": "vite preview",
-    "preview:gh-pages": "vite preview --port 4173",
-    "type-check": "tsc --noEmit"
-  },
+    "preview:gh-pages": "vite preview --port 4173 --mode production"
+  }
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
     "@monaco-editor/react": "^4.7.0",
