@@ -15,4 +15,24 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  base: mode === "production" ? "/vite_react_shadcn_ts/" : "/",
+  build: {
+    outDir: "dist",
+    sourcemap: false,
+    minify: "esbuild",
+    chunkSizeWarningLimit: 1600,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ["react", "react-dom"],
+          ui: ["@radix-ui/react-dialog", "@radix-ui/react-toast", "sonner"],
+          utils: ["clsx", "tailwind-merge", "class-variance-authority"]
+        }
+      }
+    }
+  },
+  preview: {
+    port: 4173,
+    host: true,
+  }
 }));
