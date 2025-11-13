@@ -7,7 +7,7 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
-      registerType: 'prompt',
+      registerType: 'autoUpdate', // Change from 'prompt' to force updates
       injectRegister: 'auto',
       workbox: {
         globDirectory: 'dist',
@@ -16,7 +16,7 @@ export default defineConfig({
         cleanupOutdatedCaches: true,
         clientsClaim: true,
         skipWaiting: true,
-        // Add this to clear old caches
+        // Clear ALL old caches
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/api\/.*/i,
@@ -28,7 +28,6 @@ export default defineConfig({
           }
         ]
       },
-      manifestFilename: 'manifest.webmanifest',
       manifest: {
         name: 'AI-Coder-Genie',
         short_name: 'AI-Coder-Genie',
@@ -43,13 +42,13 @@ export default defineConfig({
         categories: ['productivity', 'business'],
         icons: [
           {
-            src: '/ai-assist-ide/icons/android-chrome-192x192.png', // Add base path
+            src: 'icons/android-chrome-192x192.png', // Use relative paths
             sizes: '192x192',
             type: 'image/png',
             purpose: 'any maskable'
           },
           {
-            src: '/ai-assist-ide/icons/android-chrome-512x512.png', // Add base path
+            src: 'icons/android-chrome-512x512.png',
             sizes: '512x512',
             type: 'image/png',
             purpose: 'any maskable'
@@ -57,11 +56,10 @@ export default defineConfig({
         ]
       },
       devOptions: { 
-        enabled: true, 
+        enabled: true,
         type: 'module',
         navigateFallback: '/ai-assist-ide/index.html'
-      },
-      includeAssets: ['icons/*']
+      }
     })
   ],
   resolve: {
@@ -70,8 +68,7 @@ export default defineConfig({
   base: '/ai-assist-ide/',
   build: {
     outDir: 'dist',
-    sourcemap: true,
-    copyPublicDir: true
-  },
-  publicDir: 'public'
+    sourcemap: false, // Disable for production
+    emptyOutDir: true // Ensure dist is cleaned before build
+  }
 })
