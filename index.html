@@ -17,23 +17,10 @@
     <link rel="shortcut icon" href="/ai-assist-ide/icons/favicon.ico" />
     <link rel="apple-touch-icon" sizes="180x180" href="/ai-assist-ide/icons/apple-touch-icon.png" />
 
-    <!-- Manifest with absolute path -->
-    <link rel="manifest" href="/ai-assist-ide/manifest.webmanifest" crossorigin="use-credentials" />
+    <!-- Manifest -->
+    <link rel="manifest" href="/ai-assist-ide/manifest.webmanifest" />
 
     <title>AI-Assist-IDE</title>
-    
-    <script>
-      // Debug script to check manifest loading
-      window.addEventListener('load', () => {
-        fetch('/ai-assist-ide/manifest.webmanifest')
-          .then(response => {
-            console.log('Manifest fetch response:', response.status);
-            return response.json();
-          })
-          .then(manifest => console.log('Manifest loaded:', manifest))
-          .catch(err => console.error('Manifest load failed:', err));
-      });
-    </script>
   </head>
   <body>
     <div id="root"></div>
