@@ -5,14 +5,7 @@
     <title>Redirecting...</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <script>
-      // Bypass service worker for redirects
-      if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.getRegistrations().then(registrations => {
-          registrations.forEach(registration => registration.unregister());
-        });
-      }
-      
-      // Redirect to hash-based app
+      // Simple redirect to hash-based app
       var basePath = '/ai-assist-ide';
       var newUrl = basePath + '/#/';
       
