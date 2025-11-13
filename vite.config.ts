@@ -16,22 +16,11 @@ export default defineConfig({
         cleanupOutdatedCaches: true,
         clientsClaim: true,
         skipWaiting: true,
-        // Add cache name with version to force update
-        cacheId: 'ai-assist-ide-v2', // ← Change this to force new cache
-        runtimeCaching: [
-          {
-            urlPattern: /^https:\/\/api\/.*/i,
-            handler: 'NetworkFirst',
-            options: {
-              cacheName: 'ai-assist-ide-api-cache', // ← Unique name
-              expiration: { maxEntries: 10, maxAgeSeconds: 86400 }
-            }
-          }
-        ]
+        cacheId: 'ai-assist-ide-v3', // Increment this to force cache update
       },
       manifest: {
-        name: 'AI-Assist-IDE', // ← Changed from AI-Coder-Genie
-        short_name: 'AI-Assist-IDE', // ← Changed
+        name: 'AI-Assist-IDE',
+        short_name: 'AI-Assist-IDE',
         description: 'AI-Powered Development Environment',
         theme_color: '#2563eb',
         background_color: '#ffffff',
@@ -43,13 +32,13 @@ export default defineConfig({
         categories: ['productivity', 'business'],
         icons: [
           {
-            src: 'icons/android-chrome-192x192.png',
+            src: 'icons/icon-192x192.png', // Use the actual file names from your build
             sizes: '192x192',
             type: 'image/png',
             purpose: 'any maskable'
           },
           {
-            src: 'icons/android-chrome-512x512.png',
+            src: 'icons/icon-512x512.png', // Use the actual file names from your build
             sizes: '512x512',
             type: 'image/png',
             purpose: 'any maskable'
