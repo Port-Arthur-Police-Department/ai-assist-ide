@@ -19,12 +19,9 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          # Remove cache configuration since we don't have package-lock.json
 
       - name: Install dependencies
-        run: |
-          # Generate package-lock.json first, then install
-          npm install --package-lock
+        run: npm install
 
       - name: Build site
         run: npm run build
@@ -32,17 +29,20 @@ jobs:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
 
-      - name: Copy 404.html
-        run: cp 404.html dist/404.html
-
-      - name: Verify build
+      - name: Copy 404.html and ensure favicon
         run: |
-          echo "=== Build Output ==="
-          ls -la dist/
-          echo ""
-          echo "=== Key Files ==="
-          [ -f dist/index.html ] && echo "✅ index.html" || echo "❌ index.html"
-          [ -f dist/404.html ] && echo "✅ 404.html" || echo "❌ 404.html"
+          cp 404.html dist/404.html
+          # Ensure favicon exists at root
+          if [ -f public/favicon.ico ]; then
+            cp public/favicon.ico dist/
+          else
+            echo "Using default favicon from build"
+          fi
+
+      - name: Verify deployment
+        run: |
+          echo "=== Deployed Files ==="
+          ls -la dist/ | head -10
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
