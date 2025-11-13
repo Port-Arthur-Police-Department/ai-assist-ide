@@ -1,0 +1,49 @@
+name: Generate package-lock.json
+
+on:
+  workflow_dispatch:  # Manual trigger only
+
+permissions:
+  contents: write
+
+jobs:
+  generate-lockfile:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Generate package-lock.json
+        run: |
+          echo "🔄 Generating package-lock.json..."
+          # Remove any existing node_modules and lock file
+          rm -rf node_modules
+          rm -f package-lock.json
+          
+          # Generate fresh package-lock.json
+          npm install --package-lock --no-audit
+          
+          # Verify it was created
+          if [ -f package-lock.json ]; then
+            echo "✅ package-lock.json generated successfully"
+            ls -la package-lock.json
+          else
+            echo "❌ Failed to generate package-lock.json"
+            exit 1
+          fi
+
+      - name: Commit package-lock.json
+        run: |
+          echo "📦 Committing package-lock.json to repository..."
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add package-lock.json
+          git commit -m "chore: add package-lock.json" || echo "No changes to commit"
+          git push
