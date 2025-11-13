@@ -2,22 +2,31 @@ import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";
 
-// Simple initialization - no service worker cleanup
+// Handle GitHub Pages routing
 function initializeApp() {
   console.log('Initializing AI-Assist-IDE...');
   
-  // Simple path correction for GitHub Pages
   const currentPath = window.location.pathname;
   const basePath = '/ai-assist-ide';
   
-  // If we're at the base path without hash, add hash for HashRouter
-  if ((currentPath === basePath || currentPath === basePath + '/') && !window.location.hash) {
-    const newUrl = basePath + '/#/' + window.location.search;
-    console.log('Adding hash for routing:', newUrl);
+  // If we're at root, redirect to the base path
+  if (currentPath === '/' || !currentPath.includes('ai-assist-ide')) {
+    const newUrl = basePath + '/' + window.location.search + window.location.hash;
+    console.log('Redirecting to base path:', newUrl);
+    window.location.replace(newUrl);
+    return false; // Don't render the app, let redirect happen
+  }
+  
+  // If we're at /ai-assist-ide (without trailing slash), add it
+  if (currentPath === basePath) {
+    const newUrl = basePath + '/' + window.location.search + window.location.hash;
     window.history.replaceState(null, '', newUrl);
   }
+  
+  return true; // Safe to render the app
 }
 
-initializeApp();
-
-createRoot(document.getElementById("root")!).render(<App />);
+// Only render if we're at the correct path
+if (initializeApp()) {
+  createRoot(document.getElementById("root")!).render(<App />);
+}
