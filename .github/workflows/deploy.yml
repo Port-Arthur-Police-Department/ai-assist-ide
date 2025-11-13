@@ -29,16 +29,19 @@ jobs:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
 
-      - name: Verify build
+      - name: Debug Built Files
         run: |
-          echo "=== Build Output ==="
-          ls -la dist/
+          echo "=== DIST FOLDER CONTENTS ==="
+          find dist/ -type f | sort
           echo ""
-          echo "=== Checking for React app ==="
-          if grep -q "root" dist/index.html; then
-            echo "✅ React app built successfully"
+          echo "=== INDEX.HTML CONTENT ==="
+          cat dist/index.html
+          echo ""
+          echo "=== CHECKING FOR REACT APP ==="
+          if grep -q "root" dist/index.html && grep -q "react" dist/index.html; then
+            echo "✅ React app detected in index.html"
           else
-            echo "❌ React app not built correctly"
+            echo "❌ React app NOT found in index.html"
           fi
 
       - name: Copy 404.html
