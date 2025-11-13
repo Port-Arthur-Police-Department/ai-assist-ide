@@ -11,15 +11,29 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="AI-Assist-IDE" />
 
-    <!-- Favicons - relative paths pointing to files in public/icons/ -->
-    <link rel="icon" type="image/png" href="icons/favicon-96x96.png" sizes="96x96" />
-    <link rel="icon" type="image/svg+xml" href="icons/favicon.svg" />
-    <link rel="shortcut icon" href="icons/favicon.ico" />
-    <link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon.png" />
+    <!-- Favicons -->
+    <link rel="icon" type="image/png" href="/ai-assist-ide/icons/favicon-96x96.png" sizes="96x96" />
+    <link rel="icon" type="image/svg+xml" href="/ai-assist-ide/icons/favicon.svg" />
+    <link rel="shortcut icon" href="/ai-assist-ide/icons/favicon.ico" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/ai-assist-ide/icons/apple-touch-icon.png" />
 
-    <!-- Manifest -->
-    <link rel="manifest" href="manifest.webmanifest" />
+    <!-- Manifest with absolute path -->
+    <link rel="manifest" href="/ai-assist-ide/manifest.webmanifest" crossorigin="use-credentials" />
+
     <title>AI-Assist-IDE</title>
+    
+    <script>
+      // Debug script to check manifest loading
+      window.addEventListener('load', () => {
+        fetch('/ai-assist-ide/manifest.webmanifest')
+          .then(response => {
+            console.log('Manifest fetch response:', response.status);
+            return response.json();
+          })
+          .then(manifest => console.log('Manifest loaded:', manifest))
+          .catch(err => console.error('Manifest load failed:', err));
+      });
+    </script>
   </head>
   <body>
     <div id="root"></div>
