@@ -5,12 +5,11 @@ import path from 'path'
 export default defineConfig({
   plugins: [
     react(),
-    // REMOVE PWA for now to get basic routing working
   ],
   resolve: {
     alias: { '@': path.resolve(__dirname, './src') }
   },
-  base: '/ai-assist-ide/',
+  base: './', // Change to relative path
   build: {
     outDir: 'dist',
     sourcemap: false,
