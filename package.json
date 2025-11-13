@@ -3,10 +3,11 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
-    "scripts": {
+      "scripts": {
     "dev": "vite",
     "build": "vite build --mode production",
-    "build:dev": "vite build --mode development", 
+    "build:simple": "vite build --mode production --config vite.config.simple.ts",
+    "build:dev": "vite build --mode development",
     "build:gh-pages": "vite build --mode production",
     "lint": "eslint .",
     "preview": "vite preview",
