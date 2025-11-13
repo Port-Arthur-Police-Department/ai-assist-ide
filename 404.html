@@ -8,7 +8,7 @@
     
     <script>
       (function() {
-        // Clear everything
+        // Nuclear cleanup
         if ('serviceWorker' in navigator) {
           navigator.serviceWorker.getRegistrations().then(function(registrations) {
             registrations.forEach(function(registration) {
@@ -25,23 +25,32 @@
           });
         }
 
-        // Always redirect to the main app with hash router
+        // Always redirect to hash-based routing
         var basePath = '/ai-assist-ide';
         var currentPath = window.location.pathname;
+        var currentHash = window.location.hash;
         
-        // Build the new URL with hash router
+        // Build URL with hash router - always use #/
         var newUrl = basePath + '/#/';
-        var search = window.location.search;
-        var hash = window.location.hash;
         
-        if (search) newUrl += '?' + search.replace('?', '');
-        if (hash && !hash.startsWith('#')) newUrl += hash;
+        // Preserve any existing hash that's not the router hash
+        if (currentHash && currentHash !== '#/' && !currentHash.startsWith('#/')) {
+          newUrl += currentHash.replace('#', '');
+        }
         
-        console.log('404 Redirecting to:', newUrl);
+        // Preserve search parameters
+        if (window.location.search) {
+          newUrl += '?' + window.location.search.substring(1);
+        }
         
-        // Use replace to avoid adding to history
+        console.log('404 Page - Redirecting to:', newUrl);
+        
+        // Force redirect
         if (window.location.href !== newUrl) {
           window.location.replace(newUrl);
+        } else {
+          // If we're already at the correct URL but still seeing 404, reload
+          window.location.reload();
         }
       })();
     </script>
@@ -51,13 +60,13 @@
       <div style="text-align: center; padding: 50px; font-family: Arial, sans-serif;">
         <h1>JavaScript Required</h1>
         <p>Please enable JavaScript to use this application.</p>
-        <p><a href="/ai-assist-ide/">Click here to go to the application</a></p>
+        <p><a href="/ai-assist-ide/#/">Click here to go to the application</a></p>
       </div>
     </noscript>
     
     <div style="text-align: center; padding: 50px; font-family: Arial, sans-serif;">
       <h1>Redirecting to AI-Assist-IDE...</h1>
-      <p>If you are not redirected automatically, <a href="/ai-assist-ide/">click here</a>.</p>
+      <p>If you are not redirected automatically, <a href="/ai-assist-ide/#/">click here</a>.</p>
     </div>
   </body>
 </html>
