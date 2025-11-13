@@ -15,7 +15,10 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
-  base: mode === "production" ? "/ai-assist-ide/" : "/", // Make sure this matches your repo name exactly
+  // Try this base configuration instead:
+  base: process.env.NODE_ENV === 'production' ? '/ai-assist-ide/' : '/',
+  // Or force it to always use the subpath:
+  // base: '/ai-assist-ide/',
   build: {
     outDir: "dist",
     sourcemap: false,
