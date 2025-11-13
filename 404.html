@@ -5,22 +5,35 @@
     <title>Redirecting...</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <script>
-      // Simple redirect to hash-based app
+      // Simple redirect to the main app
+      var currentPath = window.location.pathname;
       var basePath = '/ai-assist-ide';
-      var newUrl = basePath + '/#/';
       
-      if (window.location.search) {
-        newUrl += '?' + window.location.search.substring(1);
+      // Extract any sub-path that might be a React route
+      var subPath = currentPath.replace(basePath, '').replace(/^\//, '');
+      
+      // Build the new URL - always go to base path and let React Router handle it
+      var newUrl = basePath + '/';
+      
+      // Preserve query parameters and hash
+      if (window.location.search) newUrl += window.location.search;
+      if (window.location.hash) newUrl += window.location.hash;
+      
+      console.log('404 - Redirecting to:', newUrl);
+      
+      // Only redirect if we're not already there
+      if (window.location.href !== newUrl) {
+        window.location.replace(newUrl);
+      } else {
+        // If we're already at the correct URL, it means React should handle this
+        console.log('Already at correct URL, React Router should handle this');
       }
-      
-      console.log('Redirecting to:', newUrl);
-      window.location.replace(newUrl);
     </script>
   </head>
   <body>
     <div style="text-align: center; padding: 50px; font-family: Arial, sans-serif;">
-      <h1>Redirecting to AI-Assist-IDE...</h1>
-      <p>If you are not redirected, <a href="/ai-assist-ide/#/">click here</a>.</p>
+      <h1>Loading AI-Assist-IDE...</h1>
+      <p>If this takes too long, <a href="/ai-assist-ide/">click here</a>.</p>
     </div>
   </body>
 </html>
