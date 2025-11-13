@@ -5,8 +5,10 @@ import { PreviewPanel } from "@/components/PreviewPanel";
 import { ChatPanel } from "@/components/ChatPanel";
 import { SettingsDialog } from "@/components/SettingsDialog";
 import { FileManager } from "@/components/FileManager";
+import { GitHubConnect } from "@/components/GitHubConnect";
+import { VersionHistory } from "@/components/VersionHistory";
 import { Button } from "@/components/ui/button";
-import { Settings, Code2, FileCode, FolderOpen } from "lucide-react";
+import { Settings, Code2, FileCode, FolderOpen, Github, History } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -108,6 +110,8 @@ const Index = () => {
   const [currentFileIndex, setCurrentFileIndex] = useState(0);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [fileManagerOpen, setFileManagerOpen] = useState(false);
+  const [githubOpen, setGithubOpen] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
 
   const currentFile = files[currentFileIndex];
 
@@ -184,6 +188,16 @@ const Index = () => {
     });
   };
 
+  const handleRepoLoad = (repoFiles: FileItem[]) => {
+    setFiles(repoFiles);
+    setCurrentFileIndex(0);
+  };
+
+  const handleVersionRestore = (versionFiles: FileItem[]) => {
+    setFiles(versionFiles);
+    setCurrentFileIndex(0);
+  };
+
   return (
     <div className="h-screen flex flex-col bg-background">
       {/* Header */}
@@ -216,6 +230,22 @@ const Index = () => {
             onClick={() => setFileManagerOpen(true)}
           >
             <FolderOpen className="h-5 w-5" />
+          </Button>
+
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setGithubOpen(true)}
+          >
+            <Github className="h-5 w-5" />
+          </Button>
+
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setHistoryOpen(true)}
+          >
+            <History className="h-5 w-5" />
           </Button>
 
           <Button
@@ -278,6 +308,17 @@ const Index = () => {
         onFileCreate={handleFileCreate}
         onFileDelete={handleFileDelete}
         onFilesImport={handleFilesImport}
+      />
+      <GitHubConnect
+        open={githubOpen}
+        onOpenChange={setGithubOpen}
+        onRepoLoad={handleRepoLoad}
+      />
+      <VersionHistory
+        open={historyOpen}
+        onOpenChange={setHistoryOpen}
+        currentFiles={files}
+        onRestore={handleVersionRestore}
       />
     </div>
   );
