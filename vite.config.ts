@@ -17,7 +17,7 @@ export default defineConfig({
         cleanupOutdatedCaches: true,
         clientsClaim: true,
         skipWaiting: true,
-        cacheId: 'ai-assist-ide-v4',
+        cacheId: 'ai-assist-ide-v5',
       },
       manifest: {
         name: 'AI-Assist-IDE',
@@ -33,25 +33,29 @@ export default defineConfig({
         categories: ['productivity', 'business'],
         icons: [
           {
-            src: 'icons/android-chrome-192x192.png', // Relative path from public folder
+            src: 'icons/android-chrome-192x192.png',
             sizes: '192x192',
             type: 'image/png',
             purpose: 'any maskable'
           },
           {
-            src: 'icons/android-chrome-512x512.png', // Relative path from public folder
+            src: 'icons/android-chrome-512x512.png',
             sizes: '512x512',
             type: 'image/png',
             purpose: 'any maskable'
           }
         ]
       },
+      // Force manifest generation
+      includeManifest: true,
+      manifestFilename: 'manifest.webmanifest',
+      strategies: 'generateSW',
       devOptions: { 
         enabled: true,
         type: 'module',
         navigateFallback: '/ai-assist-ide/index.html'
       },
-      includeAssets: ['icons/*'] // This will include all icons from public/icons/
+      includeAssets: ['icons/*']
     })
   ],
   resolve: {
