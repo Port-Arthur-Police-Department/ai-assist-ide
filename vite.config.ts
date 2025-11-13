@@ -14,5 +14,9 @@ export default defineConfig({
     outDir: 'dist',
     sourcemap: false,
     emptyOutDir: true
+  },
+  // Important for SPA routing
+  server: {
+    historyApiFallback: true
   }
 })
