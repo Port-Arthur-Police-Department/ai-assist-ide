@@ -11,30 +11,14 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="AI-Assist-IDE" />
 
-    <!-- Cache-busting query parameter -->
-    <link rel="icon" type="image/png" href="icons/favicon-96x96.png?v=2" sizes="96x96" />
-    <link rel="icon" type="image/svg+xml" href="icons/favicon.svg?v=2" />
-    <link rel="shortcut icon" href="icons/favicon.ico?v=2" />
-    <link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon.png?v=2" />
+    <!-- Use absolute paths for favicons -->
+    <link rel="icon" type="image/png" href="/ai-assist-ide/icons/favicon-96x96.png" sizes="96x96" />
+    <link rel="icon" type="image/svg+xml" href="/ai-assist-ide/icons/favicon.svg" />
+    <link rel="shortcut icon" href="/ai-assist-ide/favicon.ico" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/ai-assist-ide/icons/apple-touch-icon.png" />
 
-    <!-- Manifest with cache-busting -->
-    <link rel="manifest" href="manifest.webmanifest?v=2" />
-
-    <!-- Preemptively clear old manifest -->
-    <link rel="manifest" href="/ai-assist-ide/manifest.webmanifest" id="new-manifest">
-    
-    <script>
-      // Nuclear option: prevent any old manifest from loading
-      if (window.location.href.includes('scheduler') || performance.getEntriesByType('navigation')[0]?.name.includes('scheduler')) {
-        // Force redirect and clear everything
-        localStorage.clear();
-        sessionStorage.clear();
-        indexedDB.databases?.().then(dbs => {
-          dbs.forEach(db => indexedDB.deleteDatabase(db.name));
-        });
-        window.location.replace('/ai-assist-ide/');
-      }
-    </script>
+    <!-- Manifest -->
+    <link rel="manifest" href="/ai-assist-ide/manifest.webmanifest" />
 
     <title>AI-Assist-IDE</title>
   </head>
