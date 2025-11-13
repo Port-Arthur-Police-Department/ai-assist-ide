@@ -13,7 +13,7 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      {/* HashRouter works better with GitHub Pages - no basename needed */}
+      {/* Use HashRouter for GitHub Pages compatibility */}
       <HashRouter>
         <Routes>
           <Route path="/" element={<Index />} />
