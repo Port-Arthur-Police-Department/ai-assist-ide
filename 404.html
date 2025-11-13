@@ -4,69 +4,23 @@
     <meta charset="utf-8" />
     <title>Redirecting...</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="icon" href="/ai-assist-ide/icons/favicon.ico" />
-    
     <script>
-      (function() {
-        // Nuclear cleanup
-        if ('serviceWorker' in navigator) {
-          navigator.serviceWorker.getRegistrations().then(function(registrations) {
-            registrations.forEach(function(registration) {
-              registration.unregister();
-            });
-          });
-        }
-
-        if ('caches' in window) {
-          caches.keys().then(function(cacheNames) {
-            cacheNames.forEach(function(cacheName) {
-              caches.delete(cacheName);
-            });
-          });
-        }
-
-        // Always redirect to hash-based routing
-        var basePath = '/ai-assist-ide';
-        var currentPath = window.location.pathname;
-        var currentHash = window.location.hash;
-        
-        // Build URL with hash router - always use #/
-        var newUrl = basePath + '/#/';
-        
-        // Preserve any existing hash that's not the router hash
-        if (currentHash && currentHash !== '#/' && !currentHash.startsWith('#/')) {
-          newUrl += currentHash.replace('#', '');
-        }
-        
-        // Preserve search parameters
-        if (window.location.search) {
-          newUrl += '?' + window.location.search.substring(1);
-        }
-        
-        console.log('404 Page - Redirecting to:', newUrl);
-        
-        // Force redirect
-        if (window.location.href !== newUrl) {
-          window.location.replace(newUrl);
-        } else {
-          // If we're already at the correct URL but still seeing 404, reload
-          window.location.reload();
-        }
-      })();
+      // Simple redirect to hash-based app
+      var basePath = '/ai-assist-ide';
+      var newUrl = basePath + '/#/';
+      
+      if (window.location.search) {
+        newUrl += '?' + window.location.search.substring(1);
+      }
+      
+      console.log('Redirecting to:', newUrl);
+      window.location.replace(newUrl);
     </script>
   </head>
   <body>
-    <noscript>
-      <div style="text-align: center; padding: 50px; font-family: Arial, sans-serif;">
-        <h1>JavaScript Required</h1>
-        <p>Please enable JavaScript to use this application.</p>
-        <p><a href="/ai-assist-ide/#/">Click here to go to the application</a></p>
-      </div>
-    </noscript>
-    
     <div style="text-align: center; padding: 50px; font-family: Arial, sans-serif;">
       <h1>Redirecting to AI-Assist-IDE...</h1>
-      <p>If you are not redirected automatically, <a href="/ai-assist-ide/#/">click here</a>.</p>
+      <p>If you are not redirected, <a href="/ai-assist-ide/#/">click here</a>.</p>
     </div>
   </body>
 </html>
