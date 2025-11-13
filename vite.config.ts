@@ -7,7 +7,7 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
-      registerType: 'autoUpdate', // Change from 'prompt' to force updates
+      registerType: 'autoUpdate',
       injectRegister: 'auto',
       workbox: {
         globDirectory: 'dist',
@@ -16,22 +16,23 @@ export default defineConfig({
         cleanupOutdatedCaches: true,
         clientsClaim: true,
         skipWaiting: true,
-        // Clear ALL old caches
+        // Add cache name with version to force update
+        cacheId: 'ai-assist-ide-v2', // ← Change this to force new cache
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/api\/.*/i,
             handler: 'NetworkFirst',
             options: {
-              cacheName: 'api-cache',
+              cacheName: 'ai-assist-ide-api-cache', // ← Unique name
               expiration: { maxEntries: 10, maxAgeSeconds: 86400 }
             }
           }
         ]
       },
       manifest: {
-        name: 'AI-Coder-Genie',
-        short_name: 'AI-Coder-Genie',
-        description: 'Replica of other AI-Builders',
+        name: 'AI-Assist-IDE', // ← Changed from AI-Coder-Genie
+        short_name: 'AI-Assist-IDE', // ← Changed
+        description: 'AI-Powered Development Environment',
         theme_color: '#2563eb',
         background_color: '#ffffff',
         display: 'standalone',
@@ -42,7 +43,7 @@ export default defineConfig({
         categories: ['productivity', 'business'],
         icons: [
           {
-            src: 'icons/android-chrome-192x192.png', // Use relative paths
+            src: 'icons/android-chrome-192x192.png',
             sizes: '192x192',
             type: 'image/png',
             purpose: 'any maskable'
@@ -68,7 +69,7 @@ export default defineConfig({
   base: '/ai-assist-ide/',
   build: {
     outDir: 'dist',
-    sourcemap: false, // Disable for production
-    emptyOutDir: true // Ensure dist is cleaned before build
+    sourcemap: false,
+    emptyOutDir: true
   }
 })
