@@ -27,7 +27,7 @@ export default defineConfig({
     }
   ]
 },
-      manifestFilename: 'manifest.webmanifest', // ✅ standardized name
+      manifestFilename: 'manifest.webmanifest',
       manifest: {
         name: 'AI-Coder-Genie',
         short_name: 'AI-Coder-Genie',
