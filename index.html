@@ -14,22 +14,19 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="AI-Coder-Genie" />
 
-    <!-- ✅ FAVICONS (removed /public/, since files in public/ are copied to root) -->
-    <link rel="icon" type="image/png" href="/ai-assist-ide/icons/favicon-96x96.png" sizes="96x96" />
-    <link rel="icon" type="image/svg+xml" href="/ai-assist-ide/icons/favicon.svg" />
-    <link rel="shortcut icon" href="/ai-assist-ide/icons/favicon.ico" />
-    <link rel="apple-touch-icon" sizes="180x180" href="/ai-assist-ide/icons/apple-touch-icon.png" />
+    <!-- Use relative paths for icons -->
+    <link rel="icon" type="image/png" href="icons/favicon-96x96.png" sizes="96x96" />
+    <link rel="icon" type="image/svg+xml" href="icons/favicon.svg" />
+    <link rel="shortcut icon" href="icons/favicon.ico" />
+    <link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon.png" />
 
-    <!-- ✅ Correct manifest path -->
-    <link rel="manifest" href="/ai-assist-ide/manifest.webmanifest" />
+    <!-- Manifest -->
+    <link rel="manifest" href="manifest.webmanifest" />
 
     <title>AI-Assist-IDE</title>
   </head>
   <body>
     <div id="root"></div>
-
-    <!-- ✅ Correct script entry (Vite rewrites this on build) -->
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
-
