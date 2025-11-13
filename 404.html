@@ -5,32 +5,29 @@
     <title>Redirecting...</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <script>
-      // Redirect to the main app with hash routing
+      // Bypass service worker for redirects
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then(registrations => {
+          registrations.forEach(registration => registration.unregister());
+        });
+      }
+      
+      // Redirect to hash-based app
       var basePath = '/ai-assist-ide';
-      var currentPath = window.location.pathname;
+      var newUrl = basePath + '/#/';
       
-      // Extract any potential route from the 404 path
-      var route = currentPath.replace(basePath, '').replace(/^\//, '');
-      
-      // Build the hash URL
-      var newUrl = basePath + '/';
-      if (route) {
-        newUrl += '#' + route;
-      }
-      
-      // Add query parameters
       if (window.location.search) {
-        newUrl += window.location.search;
+        newUrl += '?' + window.location.search.substring(1);
       }
       
-      console.log('Redirecting from 404 to:', newUrl);
+      console.log('404 - Redirecting to:', newUrl);
       window.location.replace(newUrl);
     </script>
   </head>
   <body>
     <div style="text-align: center; padding: 50px; font-family: Arial, sans-serif;">
       <h1>Redirecting to AI-Assist-IDE...</h1>
-      <p>If you are not redirected, <a href="/ai-assist-ide/">click here</a>.</p>
+      <p>If you are not redirected, <a href="/ai-assist-ide/#/">click here</a>.</p>
     </div>
   </body>
 </html>
