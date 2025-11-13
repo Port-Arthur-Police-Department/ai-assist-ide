@@ -20,8 +20,32 @@ jobs:
         with:
           node-version: 20
 
+      - name: Check and generate package-lock.json if missing
+        run: |
+          if [ ! -f package-lock.json ]; then
+            echo "🔄 package-lock.json not found, generating it..."
+            npm install --package-lock --no-audit
+            echo "✅ package-lock.json generated"
+            
+            # Optional: uncomment to auto-commit (remove after first run)
+            # git config --local user.email "action@github.com"
+            # git config --local user.name "GitHub Action"
+            # git add package-lock.json
+            # git commit -m "Add package-lock.json"
+            # git push
+          else
+            echo "✅ package-lock.json exists"
+          fi
+
       - name: Install dependencies
-        run: npm install
+        run: |
+          if [ -f package-lock.json ]; then
+            echo "Using npm ci with package-lock.json"
+            npm ci --no-audit
+          else
+            echo "Using npm install (fallback)"
+            npm install
+          fi
 
       - name: Build for production
         run: npm run build
