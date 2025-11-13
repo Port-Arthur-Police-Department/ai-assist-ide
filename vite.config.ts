@@ -10,8 +10,8 @@ export default defineConfig({
       registerType: 'prompt',
       injectRegister: 'auto',
       workbox: {
-        globPatterns: [],          // let Vite decide → no “empty glob” warning
-        navigateFallback: null,
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,webmanifest}'], // ✅ allow assets to precache
+        navigateFallback: '/ai-assist-ide/index.html', // ✅ SPA fallback for subpath
         cleanupOutdatedCaches: true,
         clientsClaim: true,
         skipWaiting: true,
@@ -26,7 +26,7 @@ export default defineConfig({
           }
         ]
       },
-      manifestFilename: 'manifest.json',   // <-- add this
+      manifestFilename: 'manifest.webmanifest', // ✅ standardized name
       manifest: {
         name: 'AI-Coder-Genie',
         short_name: 'AI-Coder-Genie',
@@ -35,7 +35,7 @@ export default defineConfig({
         background_color: '#ffffff',
         display: 'standalone',
         orientation: 'portrait',
-        scope: '/ai-assist-ide/',
+        scope: '/ai-assist-ide/',   // ✅ ensure these match your base
         start_url: '/ai-assist-ide/',
         lang: 'en-US',
         categories: ['productivity', 'business'],
@@ -55,13 +55,13 @@ export default defineConfig({
         ]
       },
       devOptions: { enabled: true, type: 'module' },
-      includeAssets: ['icons/*.png', 'icons/*.ico', 'icons/*.svg']
+      includeAssets: ['icons/*']
     })
   ],
   resolve: {
     alias: { '@': path.resolve(__dirname, './src') }
   },
-  base: '/ai-assist-ide/',
+  base: '/ai-assist-ide/', // ✅ essential for subpath deployment
   build: {
     outDir: 'dist',
     sourcemap: true,
