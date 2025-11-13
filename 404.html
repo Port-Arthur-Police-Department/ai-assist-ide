@@ -4,47 +4,43 @@
     <meta charset="utf-8" />
     <title>Redirecting...</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" href="/ai-assist-ide/icons/favicon.ico" />
     
     <script>
-      // Clear any old service workers and caches
       (function() {
-        // Clear service workers
+        // Clear everything
         if ('serviceWorker' in navigator) {
           navigator.serviceWorker.getRegistrations().then(function(registrations) {
-            for (var i = 0; i < registrations.length; i++) {
-              registrations[i].unregister();
-              console.log('Unregistered service worker:', registrations[i].scope);
-            }
-          });
-        }
-
-        // Clear caches
-        if ('caches' in window) {
-          caches.keys().then(function(cacheNames) {
-            cacheNames.forEach(function(cacheName) {
-              // Delete caches from old projects
-              if (cacheName.includes('scheduler') || !cacheName.includes('ai-assist-ide')) {
-                caches.delete(cacheName);
-                console.log('Deleted cache:', cacheName);
-              }
+            registrations.forEach(function(registration) {
+              registration.unregister();
             });
           });
         }
 
-        // Redirect to main app
-        var currentPath = window.location.pathname;
+        if ('caches' in window) {
+          caches.keys().then(function(cacheNames) {
+            cacheNames.forEach(function(cacheName) {
+              caches.delete(cacheName);
+            });
+          });
+        }
+
+        // Always redirect to the main app with hash router
         var basePath = '/ai-assist-ide';
+        var currentPath = window.location.pathname;
         
-        // If we're not at the correct base path, redirect
-        if (!currentPath.startsWith(basePath + '/') && currentPath !== basePath) {
-          var newUrl = basePath + '/';
-          var search = window.location.search;
-          var hash = window.location.hash;
-          
-          if (search) newUrl += search;
-          if (hash) newUrl += hash;
-          
-          console.log('Redirecting to:', newUrl);
+        // Build the new URL with hash router
+        var newUrl = basePath + '/#/';
+        var search = window.location.search;
+        var hash = window.location.hash;
+        
+        if (search) newUrl += '?' + search.replace('?', '');
+        if (hash && !hash.startsWith('#')) newUrl += hash;
+        
+        console.log('404 Redirecting to:', newUrl);
+        
+        // Use replace to avoid adding to history
+        if (window.location.href !== newUrl) {
           window.location.replace(newUrl);
         }
       })();
@@ -60,17 +56,8 @@
     </noscript>
     
     <div style="text-align: center; padding: 50px; font-family: Arial, sans-serif;">
-      <h1>Redirecting...</h1>
+      <h1>Redirecting to AI-Assist-IDE...</h1>
       <p>If you are not redirected automatically, <a href="/ai-assist-ide/">click here</a>.</p>
     </div>
-
-    <!-- Fallback redirect -->
-    <script>
-      setTimeout(function() {
-        if (!window.location.pathname.startsWith('/ai-assist-ide')) {
-          window.location.replace('/ai-assist-ide/');
-        }
-      }, 1000);
-    </script>
   </body>
 </html>
