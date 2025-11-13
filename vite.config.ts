@@ -5,12 +5,11 @@ import path from 'path'
 export default defineConfig({
   plugins: [
     react(),
-    // REMOVE VitePWA completely for now
   ],
   resolve: {
     alias: { '@': path.resolve(__dirname, './src') }
   },
-  base: '/ai-assist-ide/',
+  base: '/ai-assist-ide/', // This is crucial
   build: {
     outDir: 'dist',
     sourcemap: false,
