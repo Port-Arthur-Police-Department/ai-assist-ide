@@ -3,22 +3,21 @@ import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import { componentTagger } from "lovable-tagger";
 
-// https://vitejs.dev/config/
-export default defineConfig(({ mode }) => ({
+export default defineConfig({
   server: {
     host: "::",
     port: 8080,
   },
-  plugins: [react(), mode === "development" && componentTagger()].filter(Boolean),
+  plugins: [
+    react(),
+    process.env.NODE_ENV === 'development' && componentTagger()
+  ].filter(Boolean),
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
   },
-  // Try this base configuration instead:
- // base: process.env.NODE_ENV === 'production' ? '/ai-assist-ide/' : '/',
-  // Or force it to always use the subpath:
- base: '/ai-assist-ide/',
+  base: '/ai-assist-ide/',
   build: {
     outDir: "dist",
     sourcemap: false,
@@ -29,7 +28,7 @@ export default defineConfig(({ mode }) => ({
         manualChunks: {
           vendor: ["react", "react-dom"],
           ui: ["@radix-ui/react-dialog", "@radix-ui/react-toast", "sonner"],
-          utils: ["clsx", "tailwind-merge", "class-variance-authority"]
+          utils: ["clsx", "tailward-merge", "class-variance-authority"]
         }
       }
     }
@@ -38,4 +37,4 @@ export default defineConfig(({ mode }) => ({
     port: 4173,
     host: true,
   }
-}));
+});
