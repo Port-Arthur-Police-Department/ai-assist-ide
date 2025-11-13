@@ -12,10 +12,11 @@ export default defineConfig({
       workbox: {
         globDirectory: 'dist',
         globPatterns: ['**/*.{js,css,html,ico,png,svg,webmanifest}'],
-        navigateFallback: '/ai-assist-ide/index.html', // ✅ ensures correct fallback
+        navigateFallback: '/ai-assist-ide/index.html',
         cleanupOutdatedCaches: true,
         clientsClaim: true,
         skipWaiting: true,
+        // Add this to clear old caches
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/api\/.*/i,
@@ -23,10 +24,10 @@ export default defineConfig({
             options: {
               cacheName: 'api-cache',
               expiration: { maxEntries: 10, maxAgeSeconds: 86400 }
-      }
-    }
-  ]
-},
+            }
+          }
+        ]
+      },
       manifestFilename: 'manifest.webmanifest',
       manifest: {
         name: 'AI-Coder-Genie',
@@ -36,33 +37,37 @@ export default defineConfig({
         background_color: '#ffffff',
         display: 'standalone',
         orientation: 'portrait',
-        scope: '/ai-assist-ide/',   // ✅ ensure these match your base
+        scope: '/ai-assist-ide/',
         start_url: '/ai-assist-ide/',
         lang: 'en-US',
         categories: ['productivity', 'business'],
         icons: [
           {
-            src: 'icons/android-chrome-192x192.png',
+            src: '/ai-assist-ide/icons/android-chrome-192x192.png', // Add base path
             sizes: '192x192',
             type: 'image/png',
             purpose: 'any maskable'
           },
           {
-            src: 'icons/android-chrome-512x512.png',
+            src: '/ai-assist-ide/icons/android-chrome-512x512.png', // Add base path
             sizes: '512x512',
             type: 'image/png',
             purpose: 'any maskable'
           }
         ]
       },
-      devOptions: { enabled: true, type: 'module' },
+      devOptions: { 
+        enabled: true, 
+        type: 'module',
+        navigateFallback: '/ai-assist-ide/index.html'
+      },
       includeAssets: ['icons/*']
     })
   ],
   resolve: {
     alias: { '@': path.resolve(__dirname, './src') }
   },
-  base: '/ai-assist-ide/', // ✅ essential for subpath deployment
+  base: '/ai-assist-ide/',
   build: {
     outDir: 'dist',
     sourcemap: true,
