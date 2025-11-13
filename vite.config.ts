@@ -16,9 +16,9 @@ export default defineConfig(({ mode }) => ({
     },
   },
   // Try this base configuration instead:
-  base: process.env.NODE_ENV === 'production' ? '/ai-assist-ide/' : '/',
+ // base: process.env.NODE_ENV === 'production' ? '/ai-assist-ide/' : '/',
   // Or force it to always use the subpath:
-  // base: '/ai-assist-ide/',
+ base: '/ai-assist-ide/',
   build: {
     outDir: "dist",
     sourcemap: false,
