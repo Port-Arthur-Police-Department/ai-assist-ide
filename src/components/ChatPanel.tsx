@@ -41,6 +41,17 @@ export const ChatPanel = ({ code, language, onApplyCode }: ChatPanelProps) => {
     let assistantContent = "";
 
     try {
+      // Get enabled provider settings
+      const openaiEnabled = localStorage.getItem("openai_enabled") === "true";
+      const anthropicEnabled = localStorage.getItem("anthropic_enabled") === "true";
+      const geminiEnabled = localStorage.getItem("gemini_enabled") === "true";
+      const deepseekEnabled = localStorage.getItem("deepseek_enabled") === "true";
+
+      const openaiKey = localStorage.getItem("openai_api_key") || "";
+      const anthropicKey = localStorage.getItem("anthropic_api_key") || "";
+      const geminiKey = localStorage.getItem("gemini_api_key") || "";
+      const deepseekKey = localStorage.getItem("deepseek_api_key") || "";
+
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-assist`,
         {
@@ -53,6 +64,12 @@ export const ChatPanel = ({ code, language, onApplyCode }: ChatPanelProps) => {
             messages: [...messages, userMessage],
             code,
             language,
+            providers: {
+              openai: openaiEnabled && openaiKey ? { key: openaiKey } : null,
+              anthropic: anthropicEnabled && anthropicKey ? { key: anthropicKey } : null,
+              gemini: geminiEnabled && geminiKey ? { key: geminiKey } : null,
+              deepseek: deepseekEnabled && deepseekKey ? { key: deepseekKey } : null,
+            },
           }),
         }
       );
