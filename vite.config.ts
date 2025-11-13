@@ -13,25 +13,15 @@ export default defineConfig({
         globDirectory: 'dist',
         globPatterns: ['**/*.{js,css,html,ico,png,svg,webmanifest}'],
         navigateFallback: '/ai-assist-ide/index.html',
+        navigateFallbackAllowlist: [/^(?!\/__).*/],
         cleanupOutdatedCaches: true,
         clientsClaim: true,
         skipWaiting: true,
-        // Add cache name with version to force update
-        cacheId: 'ai-assist-ide-v2', // ← Change this to force new cache
-        runtimeCaching: [
-          {
-            urlPattern: /^https:\/\/api\/.*/i,
-            handler: 'NetworkFirst',
-            options: {
-              cacheName: 'ai-assist-ide-api-cache', // ← Unique name
-              expiration: { maxEntries: 10, maxAgeSeconds: 86400 }
-            }
-          }
-        ]
+        cacheId: 'ai-assist-ide-v4',
       },
       manifest: {
-        name: 'AI-Assist-IDE', // ← Changed from AI-Coder-Genie
-        short_name: 'AI-Assist-IDE', // ← Changed
+        name: 'AI-Assist-IDE',
+        short_name: 'AI-Assist-IDE',
         description: 'AI-Powered Development Environment',
         theme_color: '#2563eb',
         background_color: '#ffffff',
@@ -43,13 +33,13 @@ export default defineConfig({
         categories: ['productivity', 'business'],
         icons: [
           {
-            src: 'icons/android-chrome-192x192.png',
+            src: 'icons/android-chrome-192x192.png', // Relative path from public folder
             sizes: '192x192',
             type: 'image/png',
             purpose: 'any maskable'
           },
           {
-            src: 'icons/android-chrome-512x512.png',
+            src: 'icons/android-chrome-512x512.png', // Relative path from public folder
             sizes: '512x512',
             type: 'image/png',
             purpose: 'any maskable'
@@ -60,7 +50,8 @@ export default defineConfig({
         enabled: true,
         type: 'module',
         navigateFallback: '/ai-assist-ide/index.html'
-      }
+      },
+      includeAssets: ['icons/*'] // This will include all icons from public/icons/
     })
   ],
   resolve: {
