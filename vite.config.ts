@@ -10,8 +10,9 @@ export default defineConfig({
       registerType: 'prompt',
       injectRegister: 'auto',
       workbox: {
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,webmanifest}'], // ✅ allow assets to precache
-        navigateFallback: '/ai-assist-ide/index.html', // ✅ SPA fallback for subpath
+        globDirectory: 'dist',
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,webmanifest}'],
+        navigateFallback: '/ai-assist-ide/index.html', // ✅ ensures correct fallback
         cleanupOutdatedCaches: true,
         clientsClaim: true,
         skipWaiting: true,
@@ -21,7 +22,7 @@ export default defineConfig({
             handler: 'NetworkFirst',
             options: {
               cacheName: 'api-cache',
-              expiration: { maxEntries: 10, maxAgeSeconds: 60 * 60 * 24 }
+              expiration: { maxEntries: 10, maxAgeSeconds: 86400 }
             }
           }
         ]
