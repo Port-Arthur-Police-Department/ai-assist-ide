@@ -15,7 +15,7 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
-  base: mode === "production" ? "/ai-assist-ide/" : "/", // Make sure this matches your repo name exactly
+  base: "/ai-assist-ide/",
   build: {
     outDir: "dist",
     sourcemap: false,
