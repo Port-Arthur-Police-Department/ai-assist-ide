@@ -9,7 +9,7 @@ export default defineConfig({
   resolve: {
     alias: { '@': path.resolve(__dirname, './src') }
   },
-  base: '/ai-assist-ide/', // This is crucial
+  base: '/ai-assist-ide/',
   build: {
     outDir: 'dist',
     sourcemap: false,
