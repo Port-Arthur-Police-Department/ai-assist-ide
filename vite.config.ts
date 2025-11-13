@@ -23,10 +23,10 @@ export default defineConfig({
             options: {
               cacheName: 'api-cache',
               expiration: { maxEntries: 10, maxAgeSeconds: 86400 }
-            }
-          }
-        ]
-      },
+      }
+    }
+  ]
+},
       manifestFilename: 'manifest.webmanifest', // ✅ standardized name
       manifest: {
         name: 'AI-Coder-Genie',
