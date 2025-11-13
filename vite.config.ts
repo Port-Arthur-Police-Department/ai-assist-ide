@@ -17,7 +17,9 @@ export default defineConfig({
         cleanupOutdatedCaches: true,
         clientsClaim: true,
         skipWaiting: true,
-        cacheId: 'ai-assist-ide-v1',
+        cacheId: 'ai-assist-ide-v2',
+        // Exclude manifest from service worker cache to ensure it loads
+        exclude: [/\.map$/, /manifest\.webmanifest$/],
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/api\./i,
@@ -25,6 +27,13 @@ export default defineConfig({
             options: {
               cacheName: 'api-cache',
               expiration: { maxEntries: 10, maxAgeSeconds: 86400 }
+            }
+          },
+          {
+            urlPattern: /\/ai-assist-ide\/manifest\.webmanifest/,
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'manifest-cache'
             }
           }
         ]
@@ -43,13 +52,13 @@ export default defineConfig({
         categories: ['productivity', 'business'],
         icons: [
           {
-            src: 'icons/android-chrome-192x192.png',
+            src: '/ai-assist-ide/icons/android-chrome-192x192.png', // Absolute path
             sizes: '192x192',
             type: 'image/png',
             purpose: 'any maskable'
           },
           {
-            src: 'icons/android-chrome-512x512.png',
+            src: '/ai-assist-ide/icons/android-chrome-512x512.png', // Absolute path
             sizes: '512x512',
             type: 'image/png',
             purpose: 'any maskable'
@@ -60,7 +69,7 @@ export default defineConfig({
       manifestFilename: 'manifest.webmanifest',
       strategies: 'generateSW',
       devOptions: { 
-        enabled: false, // Disable in dev to avoid conflicts
+        enabled: false,
         type: 'module',
         navigateFallback: '/ai-assist-ide/index.html'
       },
@@ -75,8 +84,5 @@ export default defineConfig({
     outDir: 'dist',
     sourcemap: false,
     emptyOutDir: true
-  },
-  server: {
-    historyApiFallback: true
   }
 })
