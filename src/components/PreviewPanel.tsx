@@ -12,7 +12,16 @@ export const PreviewPanel = ({ code, language }: PreviewPanelProps) => {
   const [previewContent, setPreviewContent] = useState("");
 
   useEffect(() => {
-    if (language === "html" || language === "javascript") {
+    // Check if code looks like HTML (contains DOCTYPE or html tags)
+    const looksLikeHtml = code.trim().toLowerCase().includes('<!doctype html') || 
+                          code.trim().toLowerCase().includes('<html') ||
+                          language === "html";
+    
+    if (looksLikeHtml) {
+      // Render HTML directly
+      setPreviewContent(code);
+    } else if (language === "javascript" || language === "js") {
+      // Wrap JavaScript in HTML
       const htmlContent = `
         <!DOCTYPE html>
         <html>
@@ -28,13 +37,31 @@ export const PreviewPanel = ({ code, language }: PreviewPanelProps) => {
             </style>
           </head>
           <body>
-            ${language === "html" ? code : `<div id="app"></div>`}
-            ${language === "javascript" ? `<script>${code}</script>` : ""}
+            <div id="app"></div>
+            <script>${code}</script>
+          </body>
+        </html>
+      `;
+      setPreviewContent(htmlContent);
+    } else if (language === "css") {
+      // Preview CSS with sample content
+      const htmlContent = `
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <meta charset="UTF-8">
+            <style>${code}</style>
+          </head>
+          <body>
+            <h1>CSS Preview</h1>
+            <p>This is a sample paragraph to preview your CSS.</p>
+            <button>Sample Button</button>
           </body>
         </html>
       `;
       setPreviewContent(htmlContent);
     } else {
+      // Show code as text for other languages
       setPreviewContent(`
         <!DOCTYPE html>
         <html>
