@@ -1,27 +1,84 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
   <head>
     <meta charset="utf-8" />
     <title>Redirecting...</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    
+    <!-- Clear any cached service workers immediately -->
     <script>
-      // Redirect script that works for subfolder deployments like /ai-assist-ide/
+      // Immediately clear service workers and caches
       (function() {
-        var l = window.location;
-        var repoName = '/ai-assist-ide'; // 👈 must match your base in vite.config.ts
+        // Clear service workers
+        if ('serviceWorker' in navigator) {
+          navigator.serviceWorker.getRegistrations().then(function(registrations) {
+            for (var i = 0; i < registrations.length; i++) {
+              registrations[i].unregister();
+              console.log('Unregistered service worker:', registrations[i].scope);
+            }
+          });
+        }
 
-        var newUrl =
-          l.protocol + '//' + l.hostname + (l.port ? ':' + l.port : '') +
-          repoName + '/?' +
-          l.pathname.replace(repoName, '').slice(1)
-            .replace(/&/g, '~and~') +
-          (l.search ? '&' + l.search.slice(1).replace(/&/g, '~and~') : '') +
-          l.hash;
+        // Clear caches
+        if ('caches' in window) {
+          caches.keys().then(function(cacheNames) {
+            cacheNames.forEach(function(cacheName) {
+              // Delete any cache that might be from old projects
+              if (cacheName.includes('scheduler') || !cacheName.includes('ai-assist-ide')) {
+                caches.delete(cacheName);
+                console.log('Deleted cache:', cacheName);
+              }
+            });
+          });
+        }
 
-        l.replace(newUrl);
+        // Redirect logic for GitHub Pages SPA
+        var currentPath = window.location.pathname;
+        var repoName = '/ai-assist-ide';
+        
+        // If we're not already at the correct path, redirect
+        if (!currentPath.startsWith(repoName + '/') && currentPath !== repoName) {
+          var newPath = repoName + '/';
+          var searchParams = new URLSearchParams(window.location.search);
+          
+          // Preserve any query parameters
+          if (searchParams.toString()) {
+            newPath += '?' + searchParams.toString();
+          }
+          
+          // Preserve hash
+          if (window.location.hash) {
+            newPath += window.location.hash;
+          }
+          
+          console.log('Redirecting from', currentPath, 'to', newPath);
+          window.location.replace(newPath);
+        } else {
+          // If we're already at the correct path but still seeing 404,
+          // it means the route should be handled by the React app
+          console.log('Path is correct, letting React router handle it');
+        }
       })();
     </script>
   </head>
   <body>
-    Redirecting...
+    <noscript>
+      <p>Please enable JavaScript to use this application.</p>
+      <p><a href="/ai-assist-ide/">Click here to go to the application</a></p>
+    </noscript>
+    
+    <div style="text-align: center; padding: 50px; font-family: Arial, sans-serif;">
+      <h1>Redirecting...</h1>
+      <p>If you are not redirected automatically, <a href="/ai-assist-ide/">click here</a>.</p>
+    </div>
+
+    <!-- Fallback redirect after 2 seconds -->
+    <script>
+      setTimeout(function() {
+        if (!window.location.pathname.startsWith('/ai-assist-ide')) {
+          window.location.replace('/ai-assist-ide/');
+        }
+      }, 2000);
+    </script>
   </body>
 </html>
