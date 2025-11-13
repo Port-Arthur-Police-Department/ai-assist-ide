@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { HashRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 
@@ -13,15 +13,13 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      {/* Use BrowserRouter with basename for GitHub Pages */}
-      <BrowserRouter basename="/ai-assist-ide">
+      {/* Use HashRouter for GitHub Pages compatibility */}
+      <HashRouter>
         <Routes>
           <Route path="/" element={<Index />} />
-          {/* Catch any incorrect paths and redirect to root */}
-          <Route path="/ai-assist-ide" element={<Navigate to="/" replace />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
-      </BrowserRouter>
+      </HashRouter>
     </TooltipProvider>
   </QueryClientProvider>
 );
