@@ -25,18 +25,8 @@ export default defineConfig({
         display: 'standalone',
         scope: '/ai-assist-ide/',
         start_url: '/ai-assist-ide/',
-        icons: [
-          {
-            src: '/ai-assist-ide/icons/android-chrome-192x192.png',
-            sizes: '192x192',
-            type: 'image/png',
-          },
-          {
-            src: '/ai-assist-ide/icons/android-chrome-512x512.png',
-            sizes: '512x512',
-            type: 'image/png',
-          }
-        ]
+        // Remove icons temporarily to avoid errors
+        icons: []
       },
       devOptions: {
         enabled: false
