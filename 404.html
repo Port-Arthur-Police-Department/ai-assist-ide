@@ -5,22 +5,13 @@
     <title>Redirecting...</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <script>
-      // Simple redirect to hash-based app
-      var basePath = '/ai-assist-ide';
-      var newUrl = basePath + '/#/';
-      
-      if (window.location.search) {
-        newUrl += '?' + window.location.search.substring(1);
+      // Simple redirect to index.html
+      if (window.location.pathname !== '/ai-assist-ide/') {
+        window.location.replace('./index.html');
       }
-      
-      console.log('404 - Redirecting to:', newUrl);
-      window.location.replace(newUrl);
     </script>
   </head>
   <body>
-    <div style="text-align: center; padding: 50px; font-family: Arial, sans-serif;">
-      <h1>Redirecting to AI-Assist-IDE...</h1>
-      <p>If you are not redirected, <a href="/ai-assist-ide/#/">click here</a>.</p>
-    </div>
+    <p>Redirecting to <a href="./index.html">AI-Assist-IDE</a>...</p>
   </body>
 </html>
