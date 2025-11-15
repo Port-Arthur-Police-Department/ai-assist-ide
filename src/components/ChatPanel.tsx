@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Send, Bot, User, Loader2 } from "lucide-react";
+import { Send, Bot, User, Loader2, Settings } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -30,6 +30,16 @@ export const ChatPanel = ({ code, language, onApplyCode }: ChatPanelProps) => {
     }
   }, [messages]);
 
+  // Simple mock AI response for when Edge Function is not available
+  const getMockAIResponse = (userInput: string, currentCode: string, currentLanguage: string): string => {
+    const responses = [
+      `I can see you're working with ${currentLanguage} code! Currently, the AI assistant is being set up.\n\nYour code:\n\`\`\`${currentLanguage}\n${currentCode}\n\`\`\`\n\nTo enable full AI features, please deploy the Edge Function in your Supabase project.`,
+      `Thanks for your message about "${userInput}". The AI functionality requires the Edge Function to be deployed.\n\nYou can deploy it by running:\n\`\`\`bash\nsupabase functions deploy ai-assist\n\`\`\``,
+      `I'd love to help you with your ${currentLanguage} code! Currently, the backend AI service is being configured.\n\nIn the meantime, you can:\n1. Deploy the Edge Function\n2. Add your API keys in settings\n3. Start chatting with AI!`
+    ];
+    return responses[Math.floor(Math.random() * responses.length)];
+  };
+
   const sendMessage = async () => {
     if (!input.trim() || isLoading) return;
 
@@ -37,8 +47,6 @@ export const ChatPanel = ({ code, language, onApplyCode }: ChatPanelProps) => {
     setMessages((prev) => [...prev, userMessage]);
     setInput("");
     setIsLoading(true);
-
-    let assistantContent = "";
 
     try {
       // Use hardcoded values for GitHub Pages deployment
@@ -56,6 +64,21 @@ export const ChatPanel = ({ code, language, onApplyCode }: ChatPanelProps) => {
       const geminiKey = localStorage.getItem("gemini_api_key") || "";
       const deepseekKey = localStorage.getItem("deepseek_api_key") || "";
 
+      // Check if any provider is actually configured
+      const hasConfiguredProvider = (openaiEnabled && openaiKey) || 
+                                   (anthropicEnabled && anthropicKey) || 
+                                   (geminiEnabled && geminiKey) || 
+                                   (deepseekEnabled && deepseekKey);
+
+      if (!hasConfiguredProvider) {
+        // No providers configured, use mock response
+        await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate thinking
+        const mockResponse = getMockAIResponse(input, code, language);
+        setMessages((prev) => [...prev, { role: "assistant", content: mockResponse }]);
+        return;
+      }
+
+      // Try to call the Edge Function
       const response = await fetch(
         `${supabaseUrl}/functions/v1/ai-assist`,
         {
@@ -78,26 +101,25 @@ export const ChatPanel = ({ code, language, onApplyCode }: ChatPanelProps) => {
         }
       );
 
-      // Check if response is HTML (error page)
+      // Check if we got an HTML error page (function not deployed)
       const contentType = response.headers.get('content-type');
       if (contentType && contentType.includes('text/html')) {
-        const htmlText = await response.text();
-        console.error('HTML response received (function not deployed):', htmlText);
-        throw new Error('Edge Function not properly deployed. Please check Supabase Functions deployment.');
+        throw new Error('EDGE_FUNCTION_NOT_DEPLOYED');
       }
 
       if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Edge function error response:', errorText);
-        throw new Error(`Edge function failed: ${response.status} ${response.statusText}`);
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
 
+      // Try to parse as SSE stream
       const reader = response.body?.getReader();
+      if (!reader) {
+        throw new Error("No response body received");
+      }
+
       const decoder = new TextDecoder();
-
-      if (!reader) throw new Error("No response body");
-
       let buffer = "";
+      let assistantContent = "";
 
       while (true) {
         const { done, value } = await reader.read();
@@ -108,55 +130,64 @@ export const ChatPanel = ({ code, language, onApplyCode }: ChatPanelProps) => {
         buffer = lines.pop() || "";
 
         for (let line of lines) {
-          if (line.endsWith("\r")) line = line.slice(0, -1);
           if (line.startsWith(":") || line.trim() === "") continue;
-          if (!line.startsWith("data: ")) continue;
+          if (line.startsWith("data: ")) {
+            const jsonStr = line.slice(6).trim();
+            if (jsonStr === "[DONE]") continue;
 
-          const jsonStr = line.slice(6).trim();
-          if (jsonStr === "[DONE]") continue;
-
-          try {
-            const parsed = JSON.parse(jsonStr);
-            const content = parsed.choices?.[0]?.delta?.content;
-            if (content) {
-              assistantContent += content;
-              setMessages((prev) => {
-                const newMessages = [...prev];
-                const lastMessage = newMessages[newMessages.length - 1];
-                if (lastMessage?.role === "assistant") {
-                  newMessages[newMessages.length - 1] = {
-                    ...lastMessage,
-                    content: assistantContent,
-                  };
-                } else {
-                  newMessages.push({ role: "assistant", content: assistantContent });
-                }
-                return newMessages;
-              });
+            try {
+              const parsed = JSON.parse(jsonStr);
+              const content = parsed.choices?.[0]?.delta?.content;
+              if (content) {
+                assistantContent += content;
+                setMessages((prev) => {
+                  const newMessages = [...prev];
+                  const lastMessage = newMessages[newMessages.length - 1];
+                  if (lastMessage?.role === "assistant") {
+                    newMessages[newMessages.length - 1] = {
+                      ...lastMessage,
+                      content: assistantContent,
+                    };
+                  } else {
+                    newMessages.push({ role: "assistant", content: assistantContent });
+                  }
+                  return newMessages;
+                });
+              }
+            } catch (e) {
+              console.error("Error parsing SSE:", e);
             }
-          } catch (e) {
-            console.error("Error parsing SSE:", e, "Line:", line);
           }
         }
       }
+
     } catch (error) {
       console.error("Chat error:", error);
       
-      // Add a helpful error message to the chat
-      const errorMessage = error instanceof Error 
-        ? error.message 
-        : "Failed to send message";
-      
+      let errorMessage = "Failed to get AI response";
+      let assistantResponse = "I encountered an error while processing your request.";
+
+      if (error instanceof Error) {
+        if (error.message === 'EDGE_FUNCTION_NOT_DEPLOYED') {
+          errorMessage = "Edge Function not deployed";
+          assistantResponse = `## Edge Function Required 🔧\n\nTo use the AI assistant, you need to deploy the Edge Function:\n\n\`\`\`bash\nsupabase functions deploy ai-assist\n\`\`\`\n\n**Steps:**\n1. Install Supabase CLI\n2. Run the deploy command above\n3. Add your API keys in settings\n4. Start chatting!`;
+        } else if (error.message.includes('HTTP 405')) {
+          errorMessage = "Method not allowed - Function may not exist";
+          assistantResponse = `## Setup Required ⚙️\n\nThe AI assistant function isn't deployed yet. Please deploy the Edge Function in your Supabase project to enable AI features.`;
+        } else {
+          errorMessage = error.message;
+          assistantResponse = `I encountered an error: ${error.message}\n\nPlease check that:\n- The Edge Function is deployed\n- You have valid API keys configured\n- The function URL is correct`;
+        }
+      }
+
+      // Add error message to chat
       setMessages((prev) => [
         ...prev, 
-        { 
-          role: "assistant", 
-          content: `I encountered an error: ${errorMessage}\n\nPlease make sure:\n1. The Edge Function is deployed in Supabase\n2. You have at least one AI provider enabled with a valid API key\n3. The function URL is correct` 
-        }
+        { role: "assistant", content: assistantResponse }
       ]);
-      
+
       toast({
-        title: "Chat Error",
+        title: "AI Assistant Setup Required",
         description: errorMessage,
         variant: "destructive",
       });
@@ -171,11 +202,27 @@ export const ChatPanel = ({ code, language, onApplyCode }: ChatPanelProps) => {
     return match ? match[1].trim() : null;
   };
 
+  const openSettings = () => {
+    // Trigger settings dialog open - you might need to adjust this based on your app structure
+    const event = new CustomEvent('open-settings');
+    window.dispatchEvent(event);
+  };
+
   return (
     <div className="h-full flex flex-col bg-chat-bg">
-      <div className="flex items-center px-4 py-3 border-b border-border bg-card">
-        <Bot className="h-5 w-5 mr-2 text-primary" />
-        <h3 className="text-sm font-semibold">AI Assistant</h3>
+      <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-card">
+        <div className="flex items-center">
+          <Bot className="h-5 w-5 mr-2 text-primary" />
+          <h3 className="text-sm font-semibold">AI Assistant</h3>
+        </div>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={openSettings}
+          className="h-8 w-8 p-0"
+        >
+          <Settings className="h-4 w-4" />
+        </Button>
       </div>
 
       <ScrollArea className="flex-1 p-4" ref={scrollRef}>
@@ -183,10 +230,16 @@ export const ChatPanel = ({ code, language, onApplyCode }: ChatPanelProps) => {
           {messages.length === 0 && (
             <div className="text-center text-muted-foreground py-8">
               <Bot className="h-12 w-12 mx-auto mb-3 opacity-50" />
-              <p className="text-sm">Ask me to help with your code!</p>
-              <p className="text-xs mt-2 text-muted-foreground/70">
-                Make sure to enable AI providers in settings
-              </p>
+              <p className="text-sm font-medium mb-2">AI Code Assistant</p>
+              <p className="text-xs mb-4">Get help with your code using AI</p>
+              <div className="text-left text-xs space-y-2 bg-muted/50 p-3 rounded-lg">
+                <p>🔧 <strong>Setup required:</strong></p>
+                <ol className="list-decimal list-inside space-y-1 ml-2">
+                  <li>Deploy Edge Function in Supabase</li>
+                  <li>Add API keys in settings</li>
+                  <li>Start chatting with AI</li>
+                </ol>
+              </div>
             </div>
           )}
           {messages.map((msg, idx) => (
@@ -258,7 +311,7 @@ export const ChatPanel = ({ code, language, onApplyCode }: ChatPanelProps) => {
                 sendMessage();
               }
             }}
-            placeholder="Ask AI to modify your code..."
+            placeholder="Ask AI to help with your code..."
             className="min-h-[60px] resize-none bg-background"
             disabled={isLoading}
           />
