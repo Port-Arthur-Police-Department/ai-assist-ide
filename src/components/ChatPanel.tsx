@@ -41,6 +41,10 @@ export const ChatPanel = ({ code, language, onApplyCode }: ChatPanelProps) => {
     let assistantContent = "";
 
     try {
+      // Use hardcoded values for GitHub Pages deployment
+      const supabaseUrl = 'https://kcdpdexzzoxaifabcqet.supabase.co';
+      const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtjZHBkZXh6em94YWlmYWJjcWV0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjMxNTc2MTgsImV4cCI6MjA3ODczMzYxOH0.1UpK0nife4Je1UD_S57UVy-tMkLJLYQL7kwUGIFRFxk';
+
       // Get enabled provider settings
       const openaiEnabled = localStorage.getItem("openai_enabled") === "true";
       const anthropicEnabled = localStorage.getItem("anthropic_enabled") === "true";
@@ -53,12 +57,12 @@ export const ChatPanel = ({ code, language, onApplyCode }: ChatPanelProps) => {
       const deepseekKey = localStorage.getItem("deepseek_api_key") || "";
 
       const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-assist`,
+        `${supabaseUrl}/functions/v1/ai-assist`,
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+            Authorization: `Bearer ${supabaseAnonKey}`,
           },
           body: JSON.stringify({
             messages: [...messages, userMessage],
@@ -74,9 +78,18 @@ export const ChatPanel = ({ code, language, onApplyCode }: ChatPanelProps) => {
         }
       );
 
+      // Check if response is HTML (error page)
+      const contentType = response.headers.get('content-type');
+      if (contentType && contentType.includes('text/html')) {
+        const htmlText = await response.text();
+        console.error('HTML response received (function not deployed):', htmlText);
+        throw new Error('Edge Function not properly deployed. Please check Supabase Functions deployment.');
+      }
+
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to get AI response");
+        const errorText = await response.text();
+        console.error('Edge function error response:', errorText);
+        throw new Error(`Edge function failed: ${response.status} ${response.statusText}`);
       }
 
       const reader = response.body?.getReader();
@@ -122,15 +135,29 @@ export const ChatPanel = ({ code, language, onApplyCode }: ChatPanelProps) => {
               });
             }
           } catch (e) {
-            console.error("Error parsing SSE:", e);
+            console.error("Error parsing SSE:", e, "Line:", line);
           }
         }
       }
     } catch (error) {
       console.error("Chat error:", error);
+      
+      // Add a helpful error message to the chat
+      const errorMessage = error instanceof Error 
+        ? error.message 
+        : "Failed to send message";
+      
+      setMessages((prev) => [
+        ...prev, 
+        { 
+          role: "assistant", 
+          content: `I encountered an error: ${errorMessage}\n\nPlease make sure:\n1. The Edge Function is deployed in Supabase\n2. You have at least one AI provider enabled with a valid API key\n3. The function URL is correct` 
+        }
+      ]);
+      
       toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to send message",
+        title: "Chat Error",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
@@ -157,6 +184,9 @@ export const ChatPanel = ({ code, language, onApplyCode }: ChatPanelProps) => {
             <div className="text-center text-muted-foreground py-8">
               <Bot className="h-12 w-12 mx-auto mb-3 opacity-50" />
               <p className="text-sm">Ask me to help with your code!</p>
+              <p className="text-xs mt-2 text-muted-foreground/70">
+                Make sure to enable AI providers in settings
+              </p>
             </div>
           )}
           {messages.map((msg, idx) => (
