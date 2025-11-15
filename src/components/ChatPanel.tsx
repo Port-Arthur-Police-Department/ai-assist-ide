@@ -1,114 +1,250 @@
-const sendMessage = async () => {
-  if (!input.trim() || isLoading) return;
+import { useState, useRef, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Send, Bot, User, Loader2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
-  const userMessage: Message = { role: "user", content: input };
-  setMessages((prev) => [...prev, userMessage]);
-  setInput("");
-  setIsLoading(true);
+interface Message {
+  role: "user" | "assistant";
+  content: string;
+}
 
-  let assistantContent = "";
+interface ChatPanelProps {
+  code: string;
+  language: string;
+  onApplyCode: (code: string) => void;
+}
 
-  try {
-    // Use the CORRECT Supabase project URL and key
-    const supabaseUrl = 'https://kcdpdexzzoxaifabcqet.supabase.co';
-    const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtjZHBkZXh6em94YWlmYWJjcWV0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjMxNTc2MTgsImV4cCI6MjA3ODczMzYxOH0.1UpK0nife4Je1UD_S57UVy-tMkLJLYQL7kwUGIFRFxk';
+export const ChatPanel = ({ code, language, onApplyCode }: ChatPanelProps) => {
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [input, setInput] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const { toast } = useToast();
 
-    console.log('Calling Edge Function at:', `${supabaseUrl}/functions/v1/ai-assist`);
-
-    const response = await fetch(
-      `${supabaseUrl}/functions/v1/ai-assist`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${supabaseAnonKey}`,
-        },
-        body: JSON.stringify({
-          messages: [...messages, userMessage],
-          code,
-          language,
-          providers: {
-            openai: { key: localStorage.getItem("openai_api_key") || "" },
-            anthropic: { key: localStorage.getItem("anthropic_api_key") || "" },
-            gemini: { key: localStorage.getItem("gemini_api_key") || "" },
-            deepseek: { key: localStorage.getItem("deepseek_api_key") || "" },
-          },
-        }),
-      }
-    );
-
-    console.log('Response status:', response.status);
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Edge function error:', errorText);
-      throw new Error(`Edge function failed: ${response.status} ${response.statusText}`);
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
+  }, [messages]);
 
-    const reader = response.body?.getReader();
-    const decoder = new TextDecoder();
+  const sendMessage = async () => {
+    if (!input.trim() || isLoading) return;
 
-    if (!reader) throw new Error("No response body");
+    const userMessage: Message = { role: "user", content: input };
+    setMessages((prev) => [...prev, userMessage]);
+    setInput("");
+    setIsLoading(true);
 
-    let buffer = "";
+    let assistantContent = "";
 
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
+    try {
+      // Get enabled provider settings
+      const openaiEnabled = localStorage.getItem("openai_enabled") === "true";
+      const anthropicEnabled = localStorage.getItem("anthropic_enabled") === "true";
+      const geminiEnabled = localStorage.getItem("gemini_enabled") === "true";
+      const deepseekEnabled = localStorage.getItem("deepseek_enabled") === "true";
 
-      buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split("\n");
-      buffer = lines.pop() || "";
+      const openaiKey = localStorage.getItem("openai_api_key") || "";
+      const anthropicKey = localStorage.getItem("anthropic_api_key") || "";
+      const geminiKey = localStorage.getItem("gemini_api_key") || "";
+      const deepseekKey = localStorage.getItem("deepseek_api_key") || "";
 
-      for (let line of lines) {
-        if (line.endsWith("\r")) line = line.slice(0, -1);
-        if (line.startsWith(":") || line.trim() === "") continue;
-        if (!line.startsWith("data: ")) continue;
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-assist`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          },
+          body: JSON.stringify({
+            messages: [...messages, userMessage],
+            code,
+            language,
+            providers: {
+              openai: openaiEnabled && openaiKey ? { key: openaiKey } : null,
+              anthropic: anthropicEnabled && anthropicKey ? { key: anthropicKey } : null,
+              gemini: geminiEnabled && geminiKey ? { key: geminiKey } : null,
+              deepseek: deepseekEnabled && deepseekKey ? { key: deepseekKey } : null,
+            },
+          }),
+        }
+      );
 
-        const jsonStr = line.slice(6).trim();
-        if (jsonStr === "[DONE]") continue;
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to get AI response");
+      }
 
-        try {
-          const parsed = JSON.parse(jsonStr);
-          const content = parsed.choices?.[0]?.delta?.content;
-          if (content) {
-            assistantContent += content;
-            setMessages((prev) => {
-              const newMessages = [...prev];
-              const lastMessage = newMessages[newMessages.length - 1];
-              if (lastMessage?.role === "assistant") {
-                newMessages[newMessages.length - 1] = {
-                  ...lastMessage,
-                  content: assistantContent,
-                };
-              } else {
-                newMessages.push({ role: "assistant", content: assistantContent });
-              }
-              return newMessages;
-            });
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+
+      if (!reader) throw new Error("No response body");
+
+      let buffer = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() || "";
+
+        for (let line of lines) {
+          if (line.endsWith("\r")) line = line.slice(0, -1);
+          if (line.startsWith(":") || line.trim() === "") continue;
+          if (!line.startsWith("data: ")) continue;
+
+          const jsonStr = line.slice(6).trim();
+          if (jsonStr === "[DONE]") continue;
+
+          try {
+            const parsed = JSON.parse(jsonStr);
+            const content = parsed.choices?.[0]?.delta?.content;
+            if (content) {
+              assistantContent += content;
+              setMessages((prev) => {
+                const newMessages = [...prev];
+                const lastMessage = newMessages[newMessages.length - 1];
+                if (lastMessage?.role === "assistant") {
+                  newMessages[newMessages.length - 1] = {
+                    ...lastMessage,
+                    content: assistantContent,
+                  };
+                } else {
+                  newMessages.push({ role: "assistant", content: assistantContent });
+                }
+                return newMessages;
+              });
+            }
+          } catch (e) {
+            console.error("Error parsing SSE:", e);
           }
-        } catch (e) {
-          console.error("Error parsing SSE:", e, "Line:", line);
         }
       }
+    } catch (error) {
+      console.error("Chat error:", error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to send message",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
     }
-  } catch (error) {
-    console.error("Chat error:", error);
-    toast({
-      title: "Error",
-      description: error instanceof Error ? error.message : "Failed to send message",
-      variant: "destructive",
-    });
-    
-    // Add error message to chat
-    setMessages((prev) => [
-      ...prev, 
-      { 
-        role: "assistant", 
-        content: "Sorry, I encountered an error. Please check that your Edge Function is deployed to the correct project and try again." 
-      }
-    ]);
-  } finally {
-    setIsLoading(false);
-  }
+  };
+
+  const extractCode = (text: string): string | null => {
+    const codeBlockRegex = /```[\w]*\n([\s\S]*?)```/;
+    const match = text.match(codeBlockRegex);
+    return match ? match[1].trim() : null;
+  };
+
+  return (
+    <div className="h-full flex flex-col bg-chat-bg">
+      <div className="flex items-center px-4 py-3 border-b border-border bg-card">
+        <Bot className="h-5 w-5 mr-2 text-primary" />
+        <h3 className="text-sm font-semibold">AI Assistant</h3>
+      </div>
+
+      <ScrollArea className="flex-1 p-4" ref={scrollRef}>
+        <div className="space-y-4">
+          {messages.length === 0 && (
+            <div className="text-center text-muted-foreground py-8">
+              <Bot className="h-12 w-12 mx-auto mb-3 opacity-50" />
+              <p className="text-sm">Ask me to help with your code!</p>
+            </div>
+          )}
+          {messages.map((msg, idx) => (
+            <div
+              key={idx}
+              className={`flex gap-3 ${msg.role === "user" ? "justify-end" : "justify-start"}`}
+            >
+              {msg.role === "assistant" && (
+                <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                  <Bot className="h-4 w-4 text-primary" />
+                </div>
+              )}
+              <div
+                className={`max-w-[80%] rounded-lg px-4 py-2 ${
+                  msg.role === "user"
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-secondary text-secondary-foreground"
+                }`}
+              >
+                <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+                {msg.role === "assistant" && extractCode(msg.content) && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="mt-2"
+                    onClick={() => {
+                      const extractedCode = extractCode(msg.content);
+                      if (extractedCode) {
+                        onApplyCode(extractedCode);
+                        toast({
+                          title: "Code Applied",
+                          description: "The AI's code has been inserted into the editor",
+                        });
+                      }
+                    }}
+                  >
+                    Apply Code
+                  </Button>
+                )}
+              </div>
+              {msg.role === "user" && (
+                <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary flex items-center justify-center">
+                  <User className="h-4 w-4 text-primary-foreground" />
+                </div>
+              )}
+            </div>
+          ))}
+          {isLoading && (
+            <div className="flex gap-3">
+              <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                <Loader2 className="h-4 w-4 text-primary animate-spin" />
+              </div>
+              <div className="bg-secondary text-secondary-foreground rounded-lg px-4 py-2">
+                <p className="text-sm">Thinking...</p>
+              </div>
+            </div>
+          )}
+        </div>
+      </ScrollArea>
+
+      <div className="p-4 border-t border-border bg-card">
+        <div className="flex gap-2">
+          <Textarea
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+              }
+            }}
+            placeholder="Ask AI to modify your code..."
+            className="min-h-[60px] resize-none bg-background"
+            disabled={isLoading}
+          />
+          <Button
+            onClick={sendMessage}
+            disabled={isLoading || !input.trim()}
+            className="h-[60px] w-[60px] p-0"
+          >
+            {isLoading ? (
+              <Loader2 className="h-5 w-5 animate-spin" />
+            ) : (
+              <Send className="h-5 w-5" />
+            )}
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
 };
