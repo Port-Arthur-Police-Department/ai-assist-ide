@@ -8,7 +8,7 @@ import { FileManager } from "@/components/FileManager";
 import { GitHubConnect } from "@/components/GitHubConnect";
 import { VersionHistory } from "@/components/VersionHistory";
 import { Button } from "@/components/ui/button";
-import { Settings, Code2, FileCode, FolderOpen, Github, History } from "lucide-react";
+import { Settings, Code2, FileCode, FolderOpen, Github, History, Eye, EyeOff, Monitor, MessageSquare } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -112,6 +112,9 @@ const Index = () => {
   const [fileManagerOpen, setFileManagerOpen] = useState(false);
   const [githubOpen, setGithubOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [showEditor, setShowEditor] = useState(true);
+  const [showPreview, setShowPreview] = useState(true);
+  const [showChat, setShowChat] = useState(true);
 
   const currentFile = files[currentFileIndex];
 
@@ -224,6 +227,37 @@ const Index = () => {
             </Select>
           </div>
 
+          <div className="h-6 w-px bg-border" />
+
+          <Button
+            variant={showEditor ? "secondary" : "ghost"}
+            size="icon"
+            onClick={() => setShowEditor(!showEditor)}
+            title="Toggle Code Editor"
+          >
+            <Code2 className="h-5 w-5" />
+          </Button>
+
+          <Button
+            variant={showPreview ? "secondary" : "ghost"}
+            size="icon"
+            onClick={() => setShowPreview(!showPreview)}
+            title="Toggle Preview"
+          >
+            <Monitor className="h-5 w-5" />
+          </Button>
+
+          <Button
+            variant={showChat ? "secondary" : "ghost"}
+            size="icon"
+            onClick={() => setShowChat(!showChat)}
+            title="Toggle AI Assistant"
+          >
+            <MessageSquare className="h-5 w-5" />
+          </Button>
+
+          <div className="h-6 w-px bg-border" />
+
           <Button
             variant="ghost"
             size="icon"
@@ -262,39 +296,47 @@ const Index = () => {
       <div className="flex-1 overflow-hidden">
         <ResizablePanelGroup direction="horizontal">
           {/* Code Editor Panel */}
-          <ResizablePanel defaultSize={35} minSize={20}>
-            <div className="h-full flex flex-col">
-              <div className="px-4 py-2 bg-card border-b border-border flex items-center justify-between">
-                <h3 className="text-sm font-semibold">Code Editor</h3>
-                <span className="text-xs text-muted-foreground">{currentFile.name}</span>
-              </div>
-              <div className="flex-1">
-                <CodeEditor
-                  value={currentFile.content}
-                  onChange={handleCodeChange}
-                  language={currentFile.language}
-                />
-              </div>
-            </div>
-          </ResizablePanel>
-
-          <ResizableHandle withHandle />
+          {showEditor && (
+            <>
+              <ResizablePanel defaultSize={35} minSize={20}>
+                <div className="h-full flex flex-col">
+                  <div className="px-4 py-2 bg-card border-b border-border flex items-center justify-between">
+                    <h3 className="text-sm font-semibold">Code Editor</h3>
+                    <span className="text-xs text-muted-foreground">{currentFile.name}</span>
+                  </div>
+                  <div className="flex-1">
+                    <CodeEditor
+                      value={currentFile.content}
+                      onChange={handleCodeChange}
+                      language={currentFile.language}
+                    />
+                  </div>
+                </div>
+              </ResizablePanel>
+              {(showPreview || showChat) && <ResizableHandle withHandle />}
+            </>
+          )}
 
           {/* Preview Panel */}
-          <ResizablePanel defaultSize={35} minSize={20}>
-            <PreviewPanel code={currentFile.content} language={currentFile.language} />
-          </ResizablePanel>
-
-          <ResizableHandle withHandle />
+          {showPreview && (
+            <>
+              <ResizablePanel defaultSize={35} minSize={20}>
+                <PreviewPanel code={currentFile.content} language={currentFile.language} />
+              </ResizablePanel>
+              {showChat && <ResizableHandle withHandle />}
+            </>
+          )}
 
           {/* AI Chat Panel */}
-          <ResizablePanel defaultSize={30} minSize={20}>
-            <ChatPanel
-              code={currentFile.content}
-              language={currentFile.language}
-              onApplyCode={handleCodeChange}
-            />
-          </ResizablePanel>
+          {showChat && (
+            <ResizablePanel defaultSize={30} minSize={20}>
+              <ChatPanel
+                code={currentFile.content}
+                language={currentFile.language}
+                onApplyCode={handleCodeChange}
+              />
+            </ResizablePanel>
+          )}
         </ResizablePanelGroup>
       </div>
 
