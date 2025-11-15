@@ -14,7 +14,22 @@ serve(async (req) => {
   try {
     const { messages, code, language, providers } = await req.json();
     
-    console.log('AI Assist:', { language, providersEnabled: Object.keys(providers || {}).filter(k => providers[k]) });
+    console.log('=== AI ASSIST DEBUG INFO ===');
+    console.log('Language:', language);
+    console.log('Last message:', messages[messages.length - 1]?.content?.substring(0, 100));
+    console.log('Providers received:', providers);
+    
+    // Debug each provider
+    if (providers) {
+      Object.entries(providers).forEach(([providerName, providerData]: [string, any]) => {
+        if (providerData && providerData.key) {
+          const key = providerData.key;
+          console.log(`${providerName}: KEY PRESENT (length: ${key.length}), starts with: ${key.substring(0, 10)}...`);
+        } else {
+          console.log(`${providerName}: NO KEY or disabled`);
+        }
+      });
+    }
 
     const systemPrompt = `You are an expert coding assistant. Help users write and improve code.
     
@@ -28,9 +43,11 @@ Provide concise, working code with explanations.`;
     let apiUrl: string;
     let headers: Record<string, string> = { 'Content-Type': 'application/json' };
     let requestBody: any;
+    let providerUsed = 'none';
 
     // Priority: OpenAI > Anthropic > Gemini > DeepSeek > Lovable AI
     if (providers?.openai?.key) {
+      providerUsed = 'openai';
       console.log('Using OpenAI');
       apiUrl = 'https://api.openai.com/v1/chat/completions';
       headers['Authorization'] = `Bearer ${providers.openai.key}`;
@@ -40,20 +57,22 @@ Provide concise, working code with explanations.`;
         stream: true,
       };
     } else if (providers?.anthropic?.key) {
+      providerUsed = 'anthropic';
       console.log('Using Anthropic');
       apiUrl = 'https://api.anthropic.com/v1/messages';
       headers['x-api-key'] = providers.anthropic.key;
       headers['anthropic-version'] = '2023-06-01';
       requestBody = {
-        model: 'claude-sonnet-4-5',
+        model: 'claude-3-5-sonnet-20241022',
         max_tokens: 4096,
         system: systemPrompt,
         messages: messages.map((m: any) => ({ role: m.role === 'assistant' ? 'assistant' : 'user', content: m.content })),
         stream: true,
       };
     } else if (providers?.gemini?.key) {
+      providerUsed = 'gemini';
       console.log('Using Gemini');
-      apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:streamGenerateContent?key=${providers.gemini.key}`;
+      apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:streamGenerateContent?key=${providers.gemini.key}`;
       requestBody = {
         contents: [
           { role: 'user', parts: [{ text: systemPrompt }] },
@@ -61,8 +80,9 @@ Provide concise, working code with explanations.`;
         ],
       };
     } else if (providers?.deepseek?.key) {
+      providerUsed = 'deepseek';
       console.log('Using DeepSeek');
-      apiUrl = 'https://api.deepseek.com/v1/chat/completions';
+      apiUrl = 'https://api.deepseek.com/chat/completions';
       headers['Authorization'] = `Bearer ${providers.deepseek.key}`;
       requestBody = {
         model: 'deepseek-chat',
@@ -70,45 +90,98 @@ Provide concise, working code with explanations.`;
         stream: true,
       };
     } else {
-      console.log('Using Lovable AI');
-      const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-      if (!LOVABLE_API_KEY) throw new Error('LOVABLE_API_KEY not configured');
-      apiUrl = 'https://ai.gateway.lovable.dev/v1/chat/completions';
-      headers['Authorization'] = `Bearer ${LOVABLE_API_KEY}`;
-      requestBody = {
-        model: 'google/gemini-2.5-flash',
-        messages: [{ role: 'system', content: systemPrompt }, ...messages],
-        stream: true,
-      };
+      console.log('No valid provider found - using fallback');
+      // Fallback mock response
+      const mockResponse = `I can see you're working with ${language} code! 
+
+Your current code:
+\`\`\`${language}
+${code}
+\`\`\`
+
+I can help you with:
+- Code improvements and optimizations
+- Bug fixes and debugging
+- Adding new features
+- Code explanations
+- Best practices
+
+To enable full AI capabilities, make sure your API keys are properly configured for your preferred AI providers.`;
+
+      const encoder = new TextEncoder();
+      return new Response(
+        new ReadableStream({
+          start(controller) {
+            const chunks = mockResponse.split(' ');
+            let index = 0;
+            
+            const sendChunk = () => {
+              if (index < chunks.length) {
+                const chunk = chunks[index] + (index < chunks.length - 1 ? ' ' : '');
+                const response = {
+                  choices: [{
+                    delta: {
+                      content: chunk
+                    }
+                  }]
+                };
+                
+                controller.enqueue(encoder.encode(`data: ${JSON.stringify(response)}\n\n`));
+                index++;
+                setTimeout(sendChunk, 50);
+              } else {
+                controller.enqueue(encoder.encode('data: [DONE]\n\n'));
+                controller.close();
+              }
+            };
+            
+            sendChunk();
+          }
+        }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'text/event-stream' },
+        }
+      );
     }
 
+    console.log(`Making request to ${providerUsed} API...`);
+    
     const response = await fetch(apiUrl, {
       method: 'POST',
       headers,
       body: JSON.stringify(requestBody),
     });
 
+    console.log(`Response status from ${providerUsed}:`, response.status);
+
     if (!response.ok) {
       const errorText = await response.text();
       console.error('API Error:', response.status, errorText);
       
-      if (response.status === 429) {
-        return new Response(JSON.stringify({ error: 'Rate limit exceeded. Try again later.' }), {
-          status: 429,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
-      
-      if (response.status === 402) {
-        return new Response(JSON.stringify({ error: 'Payment required. Add credits.' }), {
-          status: 402,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
-
-      throw new Error(`API error: ${response.status}`);
+      // Return a helpful error message
+      const encoder = new TextEncoder();
+      return new Response(
+        new ReadableStream({
+          start(controller) {
+            const errorResponse = {
+              choices: [{
+                delta: {
+                  content: `Error from ${providerUsed} API (${response.status}): ${errorText.substring(0, 200)}...\n\nPlease check your API key and try again.`
+                }
+              }]
+            };
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify(errorResponse)}\n\n`));
+            controller.enqueue(encoder.encode('data: [DONE]\n\n'));
+            controller.close();
+          }
+        }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'text/event-stream' },
+        }
+      );
     }
 
+    console.log(`Successfully connected to ${providerUsed} API, streaming response...`);
     return new Response(response.body, {
       headers: { ...corsHeaders, 'Content-Type': 'text/event-stream' },
     });
@@ -116,9 +189,26 @@ Provide concise, working code with explanations.`;
   } catch (error) {
     console.error('Error:', error);
     const message = error instanceof Error ? error.message : 'An error occurred';
-    return new Response(JSON.stringify({ error: message }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    
+    const encoder = new TextEncoder();
+    return new Response(
+      new ReadableStream({
+        start(controller) {
+          const errorResponse = {
+            choices: [{
+              delta: {
+                content: `Unexpected error: ${message}\n\nPlease check the console for details.`
+              }
+            }]
+          };
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify(errorResponse)}\n\n`));
+          controller.enqueue(encoder.encode('data: [DONE]\n\n'));
+          controller.close();
+        }
+      }),
+      {
+        headers: { ...corsHeaders, 'Content-Type': 'text/event-stream' },
+      }
+    );
   }
 });
