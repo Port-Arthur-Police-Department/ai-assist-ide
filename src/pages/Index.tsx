@@ -7,8 +7,10 @@ import { SettingsDialog } from "@/components/SettingsDialog";
 import { FileManager } from "@/components/FileManager";
 import { GitHubConnect } from "@/components/GitHubConnect";
 import { VersionHistory } from "@/components/VersionHistory";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { Button } from "@/components/ui/button";
-import { Settings, Code2, FileCode, FolderOpen, Github, History, Eye, EyeOff, Monitor, MessageSquare } from "lucide-react";
+import { Settings, Code2, FileCode, FolderOpen, Github, History, Eye, EyeOff, Monitor, MessageSquare, LogOut } from "lucide-react";
+import type { User, Session } from '@supabase/supabase-js';
 import {
   Select,
   SelectContent,
@@ -99,7 +101,13 @@ interface FileItem {
   language: string;
 }
 
-const Index = () => {
+interface IndexProps {
+  user: User;
+  session: Session;
+  onSignOut: () => Promise<void>;
+}
+
+const Index = ({ user, session, onSignOut }: IndexProps) => {
   const [files, setFiles] = useState<FileItem[]>([
     {
       name: "index.html",
@@ -288,6 +296,19 @@ const Index = () => {
             onClick={() => setSettingsOpen(true)}
           >
             <Settings className="h-5 w-5" />
+          </Button>
+
+          <div className="h-6 w-px bg-border" />
+
+          <ThemeToggle />
+
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onSignOut}
+            title="Sign Out"
+          >
+            <LogOut className="h-5 w-5" />
           </Button>
         </div>
       </header>

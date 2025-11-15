@@ -49,6 +49,48 @@ All colors MUST be HSL.
     --primary-glow: 189 100% 65%;
     --shadow-glow: 0 10px 40px hsl(189 100% 50% / 0.2);
   }
+
+  .light {
+    /* Light theme */
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+
+    --primary: 189 100% 40%;
+    --primary-foreground: 210 40% 98%;
+
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+
+    --accent: 189 100% 40%;
+    --accent-foreground: 210 40% 98%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 189 100% 40%;
+
+    --radius: 0.5rem;
+
+    /* Panel backgrounds */
+    --editor-bg: 0 0% 98%;
+    --preview-bg: 0 0% 100%;
+    --chat-bg: 0 0% 98%;
+    
+    /* Glow effects */
+    --primary-glow: 189 100% 50%;
+    --shadow-glow: 0 10px 40px hsl(189 100% 50% / 0.15);
+  }
 }
 
 @layer base {
