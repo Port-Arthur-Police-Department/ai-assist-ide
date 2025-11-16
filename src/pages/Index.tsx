@@ -144,6 +144,19 @@ const Index = ({ user, session, onSignOut }: IndexProps) => {
     localStorage.setItem("ide_files", JSON.stringify(files));
   }, [files]);
 
+  // Add keyboard shortcuts for file navigation
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Tab') {
+        e.preventDefault();
+        setCurrentFileIndex((prev) => (prev + 1) % files.length);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [files.length]);
+
   const handleCodeChange = (newCode: string) => {
     setFiles((prev) =>
       prev.map((file, idx) =>
@@ -219,8 +232,38 @@ const Index = ({ user, session, onSignOut }: IndexProps) => {
         </div>
 
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2">
-            <FileCode className="h-4 w-4 text-muted-foreground" />
+          <div className="flex items-center gap-3">
+            {/* File Switcher Dropdown */}
+            <Select value={currentFile.name} onValueChange={(fileName) => {
+              const index = files.findIndex(f => f.name === fileName);
+              if (index !== -1) {
+                setCurrentFileIndex(index);
+              }
+            }}>
+              <SelectTrigger className="w-[200px]">
+                <SelectValue>
+                  <div className="flex items-center gap-2">
+                    <FileCode className="h-4 w-4" />
+                    <span>{currentFile.name}</span>
+                  </div>
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {files.map((file, index) => (
+                  <SelectItem key={file.name} value={file.name}>
+                    <div className="flex items-center gap-2">
+                      <FileCode className="h-4 w-4" />
+                      <span>{file.name}</span>
+                      <span className="text-xs text-muted-foreground ml-2">
+                        ({file.language})
+                      </span>
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            {/* Language selector */}
             <Select value={currentFile.language} onValueChange={handleLanguageChange}>
               <SelectTrigger className="w-[150px]">
                 <SelectValue />
@@ -355,6 +398,7 @@ const Index = ({ user, session, onSignOut }: IndexProps) => {
                 code={currentFile.content}
                 language={currentFile.language}
                 onApplyCode={handleCodeChange}
+                onOpenSettings={() => setSettingsOpen(true)}
               />
             </ResizablePanel>
           )}
