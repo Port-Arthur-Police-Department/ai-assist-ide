@@ -80,10 +80,6 @@ Your current code is ${currentCode.length} characters long. Need help with anyth
     setIsLoading(true);
 
     try {
-      // Use hardcoded values for GitHub Pages deployment
-      const supabaseUrl = 'https://kcdpdexzzoxaifabcqet.supabase.co';
-      const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtjZHBkZXh6em94YWlmYWJjcWV0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjMxNTc2MTgsImV4cCI6MjA3ODczMzYxOH0.1UpK0nife4Je1UD_S57UVy-tMkLJLYQL7kwUGIFRFxk';
-
       // Get enabled provider settings
       const openaiEnabled = localStorage.getItem("openai_enabled") === "true";
       const anthropicEnabled = localStorage.getItem("anthropic_enabled") === "true";
@@ -95,101 +91,67 @@ Your current code is ${currentCode.length} characters long. Need help with anyth
       const geminiKey = localStorage.getItem("gemini_api_key") || "";
       const deepseekKey = localStorage.getItem("deepseek_api_key") || "";
 
-      // Check if any provider is actually configured
-      const hasConfiguredProvider = (openaiEnabled && openaiKey) || 
-                                   (anthropicEnabled && anthropicKey) || 
-                                   (geminiEnabled && geminiKey) || 
-                                   (deepseekEnabled && deepseekKey);
+      // Check if any provider is actually configured with valid keys
+      const hasConfiguredProvider = 
+        (openaiEnabled && openaiKey && openaiKey.length > 10) || 
+        (anthropicEnabled && anthropicKey && anthropicKey.length > 10) || 
+        (geminiEnabled && geminiKey && geminiKey.length > 10) || 
+        (deepseekEnabled && deepseekKey && deepseekKey.length > 10);
+
+      console.log('AI Provider Check:', {
+        openaiEnabled, openaiKeyLength: openaiKey.length,
+        anthropicEnabled, anthropicKeyLength: anthropicKey.length,
+        geminiEnabled, geminiKeyLength: geminiKey.length,
+        deepseekEnabled, deepseekKeyLength: deepseekKey.length,
+        hasConfiguredProvider
+      });
 
       if (!hasConfiguredProvider) {
         // No providers configured, use mock response
+        console.log('No configured providers found, using mock response');
         await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate thinking
         const mockResponse = getMockAIResponse(input, code, language);
         setMessages((prev) => [...prev, { role: "assistant", content: mockResponse }]);
         return;
       }
 
-      // Try to call the Edge Function
-      const response = await fetch(
-        `${supabaseUrl}/functions/v1/ai-assist`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${supabaseAnonKey}`,
+      // Try to call the Edge Function with proper error handling
+      console.log('Attempting to call Edge Function with configured providers');
+      
+      const { data, error } = await supabase.functions.invoke('ai-assist', {
+        body: {
+          messages: [...messages, userMessage],
+          code,
+          language,
+          providers: {
+            openai: openaiEnabled && openaiKey ? { key: openaiKey } : null,
+            anthropic: anthropicEnabled && anthropicKey ? { key: anthropicKey } : null,
+            gemini: geminiEnabled && geminiKey ? { key: geminiKey } : null,
+            deepseek: deepseekEnabled && deepseekKey ? { key: deepseekKey } : null,
           },
-          body: JSON.stringify({
-            messages: [...messages, userMessage],
-            code,
-            language,
-            providers: {
-              openai: openaiEnabled && openaiKey ? { key: openaiKey } : null,
-              anthropic: anthropicEnabled && anthropicKey ? { key: anthropicKey } : null,
-              gemini: geminiEnabled && geminiKey ? { key: geminiKey } : null,
-              deepseek: deepseekEnabled && deepseekKey ? { key: deepseekKey } : null,
-            },
-          }),
-        }
-      );
+        },
+      });
 
-      // Check if we got an HTML error page (function not deployed)
-      const contentType = response.headers.get('content-type');
-      if (contentType && contentType.includes('text/html')) {
-        throw new Error('EDGE_FUNCTION_NOT_DEPLOYED');
+      if (error) {
+        console.error('Edge Function Error:', error);
+        throw new Error(`Edge Function Error: ${error.message}`);
       }
 
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      if (!data) {
+        throw new Error('No response data received from Edge Function');
       }
 
-      // Try to parse as SSE stream
-      const reader = response.body?.getReader();
-      if (!reader) {
-        throw new Error("No response body received");
-      }
-
-      const decoder = new TextDecoder();
-      let buffer = "";
-      let assistantContent = "";
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split("\n");
-        buffer = lines.pop() || "";
-
-        for (let line of lines) {
-          if (line.startsWith(":") || line.trim() === "") continue;
-          if (line.startsWith("data: ")) {
-            const jsonStr = line.slice(6).trim();
-            if (jsonStr === "[DONE]") continue;
-
-            try {
-              const parsed = JSON.parse(jsonStr);
-              const content = parsed.choices?.[0]?.delta?.content;
-              if (content) {
-                assistantContent += content;
-                setMessages((prev) => {
-                  const newMessages = [...prev];
-                  const lastMessage = newMessages[newMessages.length - 1];
-                  if (lastMessage?.role === "assistant") {
-                    newMessages[newMessages.length - 1] = {
-                      ...lastMessage,
-                      content: assistantContent,
-                    };
-                  } else {
-                    newMessages.push({ role: "assistant", content: assistantContent });
-                  }
-                  return newMessages;
-                });
-              }
-            } catch (e) {
-              console.error("Error parsing SSE:", e);
-            }
-          }
-        }
+      // Handle the response based on the format
+      if (data.content) {
+        // Direct response format
+        setMessages((prev) => [...prev, { role: "assistant", content: data.content }]);
+      } else if (data.choices && data.choices[0] && data.choices[0].message) {
+        // OpenAI format
+        setMessages((prev) => [...prev, { role: "assistant", content: data.choices[0].message.content }]);
+      } else {
+        // Fallback - try to extract any text content
+        const content = JSON.stringify(data);
+        setMessages((prev) => [...prev, { role: "assistant", content: `Received response: ${content}` }]);
       }
 
     } catch (error) {
@@ -199,15 +161,15 @@ Your current code is ${currentCode.length} characters long. Need help with anyth
       let assistantResponse = "I encountered an error while processing your request.";
 
       if (error instanceof Error) {
-        if (error.message === 'EDGE_FUNCTION_NOT_DEPLOYED') {
-          errorMessage = "Edge Function not deployed";
-          assistantResponse = `## Edge Function Required 🔧\n\nTo use the AI assistant, you need to deploy the Edge Function:\n\n\`\`\`bash\nsupabase functions deploy ai-assist\n\`\`\`\n\n**Steps:**\n1. Install Supabase CLI\n2. Run the deploy command above\n3. Add your API keys in settings\n4. Start chatting!`;
-        } else if (error.message.includes('HTTP 405')) {
-          errorMessage = "Method not allowed - Function may not exist";
-          assistantResponse = `## Setup Required ⚙️\n\nThe AI assistant function isn't deployed yet. Please deploy the Edge Function in your Supabase project to enable AI features.`;
+        if (error.message.includes('Edge Function Error')) {
+          errorMessage = "Edge Function Error";
+          assistantResponse = `## Edge Function Issue 🔧\n\nThere was an error calling the AI service:\n\n\`\`\`\n${error.message}\n\`\`\`\n\n**Please check:**\n- The Edge Function is deployed\n- Your API keys are valid and enabled\n- The function has proper CORS settings`;
+        } else if (error.message.includes('Failed to fetch')) {
+          errorMessage = "Network Error";
+          assistantResponse = `## Network Issue 🌐\n\nUnable to reach the AI service. Please check:\n\n- Your internet connection\n- CORS settings for the Edge Function\n- Function deployment status`;
         } else {
           errorMessage = error.message;
-          assistantResponse = `I encountered an error: ${error.message}\n\nPlease check that:\n- The Edge Function is deployed\n- You have valid API keys configured\n- The function URL is correct`;
+          assistantResponse = `## Error Occurred ⚠️\n\nI encountered an error: ${error.message}\n\n**Troubleshooting steps:**\n1. Check your API keys in settings\n2. Verify the Edge Function is deployed\n3. Check browser console for detailed errors`;
         }
       }
 
@@ -218,7 +180,7 @@ Your current code is ${currentCode.length} characters long. Need help with anyth
       ]);
 
       toast({
-        title: "AI Assistant Setup Required",
+        title: "AI Assistant Error",
         description: errorMessage,
         variant: "destructive",
       });
