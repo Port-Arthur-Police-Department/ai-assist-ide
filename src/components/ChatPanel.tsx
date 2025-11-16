@@ -72,122 +72,151 @@ Your current code is ${currentCode.length} characters long. Need help with anyth
   };
 
   const sendMessage = async () => {
-    if (!input.trim() || isLoading) return;
+  if (!input.trim() || isLoading) return;
 
-    const userMessage: Message = { role: "user", content: input };
-    setMessages((prev) => [...prev, userMessage]);
-    setInput("");
-    setIsLoading(true);
+  const userMessage: Message = { role: "user", content: input };
+  setMessages((prev) => [...prev, userMessage]);
+  setInput("");
+  setIsLoading(true);
 
-    try {
-      // Get enabled provider settings
-      const openaiEnabled = localStorage.getItem("openai_enabled") === "true";
-      const anthropicEnabled = localStorage.getItem("anthropic_enabled") === "true";
-      const geminiEnabled = localStorage.getItem("gemini_enabled") === "true";
-      const deepseekEnabled = localStorage.getItem("deepseek_enabled") === "true";
+  try {
+    // Get enabled provider settings
+    const openaiEnabled = localStorage.getItem("openai_enabled") === "true";
+    const anthropicEnabled = localStorage.getItem("anthropic_enabled") === "true";
+    const geminiEnabled = localStorage.getItem("gemini_enabled") === "true";
+    const deepseekEnabled = localStorage.getItem("deepseek_enabled") === "true";
 
-      const openaiKey = localStorage.getItem("openai_api_key") || "";
-      const anthropicKey = localStorage.getItem("anthropic_api_key") || "";
-      const geminiKey = localStorage.getItem("gemini_api_key") || "";
-      const deepseekKey = localStorage.getItem("deepseek_api_key") || "";
+    const openaiKey = localStorage.getItem("openai_api_key") || "";
+    const anthropicKey = localStorage.getItem("anthropic_api_key") || "";
+    const geminiKey = localStorage.getItem("gemini_api_key") || "";
+    const deepseekKey = localStorage.getItem("deepseek_api_key") || "";
 
-      // Check if any provider is actually configured with valid keys
-      const hasConfiguredProvider = 
-        (openaiEnabled && openaiKey && openaiKey.length > 10) || 
-        (anthropicEnabled && anthropicKey && anthropicKey.length > 10) || 
-        (geminiEnabled && geminiKey && geminiKey.length > 10) || 
-        (deepseekEnabled && deepseekKey && deepseekKey.length > 10);
+    // Check if any provider is actually configured with valid keys
+    const hasConfiguredProvider = 
+      (openaiEnabled && openaiKey && openaiKey.length > 10) || 
+      (anthropicEnabled && anthropicKey && anthropicKey.length > 10) || 
+      (geminiEnabled && geminiKey && geminiKey.length > 10) || 
+      (deepseekEnabled && deepseekKey && deepseekKey.length > 10);
 
-      console.log('AI Provider Check:', {
-        openaiEnabled, openaiKeyLength: openaiKey.length,
-        anthropicEnabled, anthropicKeyLength: anthropicKey.length,
-        geminiEnabled, geminiKeyLength: geminiKey.length,
-        deepseekEnabled, deepseekKeyLength: deepseekKey.length,
-        hasConfiguredProvider
-      });
+    console.log('AI Provider Check:', {
+      openaiEnabled, openaiKeyLength: openaiKey.length,
+      anthropicEnabled, anthropicKeyLength: anthropicKey.length,
+      geminiEnabled, geminiKeyLength: geminiKey.length,
+      deepseekEnabled, deepseekKeyLength: deepseekKey.length,
+      hasConfiguredProvider
+    });
 
-      if (!hasConfiguredProvider) {
-        // No providers configured, use mock response
-        console.log('No configured providers found, using mock response');
-        await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate thinking
-        const mockResponse = getMockAIResponse(input, code, language);
-        setMessages((prev) => [...prev, { role: "assistant", content: mockResponse }]);
-        return;
-      }
+    if (!hasConfiguredProvider) {
+      // No providers configured, use mock response
+      console.log('No configured providers found, using mock response');
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      const mockResponse = getMockAIResponse(input, code, language);
+      setMessages((prev) => [...prev, { role: "assistant", content: mockResponse }]);
+      return;
+    }
 
-      // Try to call the Edge Function with proper error handling
-      console.log('Attempting to call Edge Function with configured providers');
-      
-      const { data, error } = await supabase.functions.invoke('ai-assist', {
-        body: {
-          messages: [...messages, userMessage],
-          code,
-          language,
-          providers: {
-            openai: openaiEnabled && openaiKey ? { key: openaiKey } : null,
-            anthropic: anthropicEnabled && anthropicKey ? { key: anthropicKey } : null,
-            gemini: geminiEnabled && geminiKey ? { key: geminiKey } : null,
-            deepseek: deepseekEnabled && deepseekKey ? { key: deepseekKey } : null,
-          },
+    // Call the Edge Function
+    console.log('Calling Edge Function with providers');
+    const { data, error } = await supabase.functions.invoke('ai-assist', {
+      body: {
+        messages: [...messages, userMessage],
+        code,
+        language,
+        providers: {
+          openai: openaiEnabled && openaiKey ? { key: openaiKey } : null,
+          anthropic: anthropicEnabled && anthropicKey ? { key: anthropicKey } : null,
+          gemini: geminiEnabled && geminiKey ? { key: geminiKey } : null,
+          deepseek: deepseekEnabled && deepseekKey ? { key: deepseekKey } : null,
         },
-      });
+      },
+    });
 
-      if (error) {
-        console.error('Edge Function Error:', error);
-        throw new Error(`Edge Function Error: ${error.message}`);
-      }
+    if (error) {
+      console.error('Edge Function Error:', error);
+      throw new Error(`Edge Function Error: ${error.message}`);
+    }
 
-      if (!data) {
-        throw new Error('No response data received from Edge Function');
-      }
-
-      // Handle the response based on the format
-      if (data.content) {
-        // Direct response format
-        setMessages((prev) => [...prev, { role: "assistant", content: data.content }]);
-      } else if (data.choices && data.choices[0] && data.choices[0].message) {
-        // OpenAI format
-        setMessages((prev) => [...prev, { role: "assistant", content: data.choices[0].message.content }]);
-      } else {
-        // Fallback - try to extract any text content
-        const content = JSON.stringify(data);
-        setMessages((prev) => [...prev, { role: "assistant", content: `Received response: ${content}` }]);
-      }
-
-    } catch (error) {
-      console.error("Chat error:", error);
+    // Handle streaming response
+    if (data && typeof data.text === 'function') {
+      // This is a ReadableStream
+      const reader = data.getReader();
+      const decoder = new TextDecoder();
+      let assistantContent = "";
       
-      let errorMessage = "Failed to get AI response";
-      let assistantResponse = "I encountered an error while processing your request.";
+      // Add initial assistant message
+      setMessages((prev) => [...prev, { role: "assistant", content: "" }]);
 
-      if (error instanceof Error) {
-        if (error.message.includes('Edge Function Error')) {
-          errorMessage = "Edge Function Error";
-          assistantResponse = `## Edge Function Issue 🔧\n\nThere was an error calling the AI service:\n\n\`\`\`\n${error.message}\n\`\`\`\n\n**Please check:**\n- The Edge Function is deployed\n- Your API keys are valid and enabled\n- The function has proper CORS settings`;
-        } else if (error.message.includes('Failed to fetch')) {
-          errorMessage = "Network Error";
-          assistantResponse = `## Network Issue 🌐\n\nUnable to reach the AI service. Please check:\n\n- Your internet connection\n- CORS settings for the Edge Function\n- Function deployment status`;
-        } else {
-          errorMessage = error.message;
-          assistantResponse = `## Error Occurred ⚠️\n\nI encountered an error: ${error.message}\n\n**Troubleshooting steps:**\n1. Check your API keys in settings\n2. Verify the Edge Function is deployed\n3. Check browser console for detailed errors`;
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value);
+        const lines = chunk.split('\n');
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            const data = line.slice(6);
+            
+            if (data === '[DONE]') {
+              break;
+            }
+
+            try {
+              const parsed = JSON.parse(data);
+              const content = parsed.choices?.[0]?.delta?.content;
+              
+              if (content) {
+                assistantContent += content;
+                // Update the last message with new content
+                setMessages((prev) => {
+                  const newMessages = [...prev];
+                  newMessages[newMessages.length - 1] = {
+                    role: "assistant",
+                    content: assistantContent
+                  };
+                  return newMessages;
+                });
+              }
+            } catch (e) {
+              console.log('Non-JSON line:', data);
+            }
+          }
         }
       }
-
-      // Add error message to chat
-      setMessages((prev) => [
-        ...prev, 
-        { role: "assistant", content: assistantResponse }
-      ]);
-
-      toast({
-        title: "AI Assistant Error",
-        description: errorMessage,
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
+    } else {
+      // Handle non-streaming response
+      const responseContent = data?.choices?.[0]?.message?.content || 
+                            data?.content || 
+                            "I received your message but couldn't generate a response.";
+      
+      setMessages((prev) => [...prev, { role: "assistant", content: responseContent }]);
     }
-  };
+
+  } catch (error) {
+    console.error("Chat error:", error);
+    
+    let errorMessage = "Failed to get AI response";
+    let assistantResponse = "I encountered an error while processing your request.";
+
+    if (error instanceof Error) {
+      errorMessage = error.message;
+      assistantResponse = `## API Error ⚠️\n\nError: ${error.message}\n\nPlease check:\n- Your API keys are valid\n- You have sufficient credits\n- The service is available`;
+    }
+
+    setMessages((prev) => [
+      ...prev, 
+      { role: "assistant", content: assistantResponse }
+    ]);
+
+    toast({
+      title: "AI Assistant Error",
+      description: errorMessage,
+      variant: "destructive",
+    });
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   const extractCode = (text: string): string | null => {
     const codeBlockRegex = /```[\w]*\n([\s\S]*?)```/;
