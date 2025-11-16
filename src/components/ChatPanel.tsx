@@ -71,7 +71,7 @@ I see you're working with **${currentLanguage}** code. The AI assistant is ready
 Your current code is ${currentCode.length} characters long. Need help with anything specific?`;
   };
 
-  const sendMessage = async () => {
+const sendMessage = async () => {
   if (!input.trim() || isLoading) return;
 
   const userMessage: Message = { role: "user", content: input };
@@ -115,8 +115,9 @@ Your current code is ${currentCode.length} characters long. Need help with anyth
       return;
     }
 
+    console.log('Calling Edge Function...');
+    
     // Call the Edge Function
-    console.log('Calling Edge Function with providers');
     const { data, error } = await supabase.functions.invoke('ai-assist', {
       body: {
         messages: [...messages, userMessage],
@@ -131,66 +132,32 @@ Your current code is ${currentCode.length} characters long. Need help with anyth
       },
     });
 
+    console.log('Edge Function response:', { data, error });
+
     if (error) {
       console.error('Edge Function Error:', error);
       throw new Error(`Edge Function Error: ${error.message}`);
     }
 
-    // Handle streaming response
-    if (data && typeof data.text === 'function') {
-      // This is a ReadableStream
-      const reader = data.getReader();
-      const decoder = new TextDecoder();
-      let assistantContent = "";
-      
-      // Add initial assistant message
-      setMessages((prev) => [...prev, { role: "assistant", content: "" }]);
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        const chunk = decoder.decode(value);
-        const lines = chunk.split('\n');
-
-        for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            const data = line.slice(6);
-            
-            if (data === '[DONE]') {
-              break;
-            }
-
-            try {
-              const parsed = JSON.parse(data);
-              const content = parsed.choices?.[0]?.delta?.content;
-              
-              if (content) {
-                assistantContent += content;
-                // Update the last message with new content
-                setMessages((prev) => {
-                  const newMessages = [...prev];
-                  newMessages[newMessages.length - 1] = {
-                    role: "assistant",
-                    content: assistantContent
-                  };
-                  return newMessages;
-                });
-              }
-            } catch (e) {
-              console.log('Non-JSON line:', data);
-            }
-          }
-        }
-      }
-    } else {
-      // Handle non-streaming response
-      const responseContent = data?.choices?.[0]?.message?.content || 
-                            data?.content || 
-                            "I received your message but couldn't generate a response.";
-      
-      setMessages((prev) => [...prev, { role: "assistant", content: responseContent }]);
+    if (!data) {
+      throw new Error('No response data received from Edge Function');
     }
+
+    // Handle the response
+    let assistantContent = '';
+    
+    if (data.choices && data.choices[0] && data.choices[0].message) {
+      // OpenAI format
+      assistantContent = data.choices[0].message.content;
+    } else if (data.content) {
+      // Direct content format
+      assistantContent = data.content;
+    } else {
+      // Fallback
+      assistantContent = JSON.stringify(data);
+    }
+
+    setMessages((prev) => [...prev, { role: "assistant", content: assistantContent }]);
 
   } catch (error) {
     console.error("Chat error:", error);
