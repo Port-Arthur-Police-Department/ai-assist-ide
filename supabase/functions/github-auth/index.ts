@@ -11,76 +11,81 @@ serve(async (req) => {
   }
 
   try {
-    const { action, code, token, owner, repo, path } = await req.json();
+    const { action, token, owner, repo, path } = await req.json();
 
-    // GitHub OAuth
-    if (action === 'oauth') {
-      const clientId = Deno.env.get('GITHUB_CLIENT_ID');
-      const clientSecret = Deno.env.get('GITHUB_CLIENT_SECRET');
-      
-      if (!clientId || !clientSecret) {
-        throw new Error('GitHub OAuth not configured');
-      }
-
-      const response = await fetch('https://github.com/login/oauth/access_token', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        body: JSON.stringify({
-          client_id: clientId,
-          client_secret: clientSecret,
-          code,
-        }),
-      });
-
-      const data = await response.json();
-      return new Response(JSON.stringify(data), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+    if (!token) {
+      throw new Error('GitHub token is required');
     }
 
-    // Get user repos
+    // Get user repositories
     if (action === 'repos') {
-      const response = await fetch('https://api.github.com/user/repos?per_page=100&sort=updated', {
+      const response = await fetch('https://api.github.com/user/repos?per_page=100&sort=updated&affiliation=owner,collaborator', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Accept': 'application/vnd.github.v3+json',
+          'User-Agent': 'AI-Assist-IDE'
         },
       });
 
-      const data = await response.json();
-      return new Response(JSON.stringify(data), {
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('GitHub API error:', response.status, errorText);
+        throw new Error(`Failed to fetch repositories: ${response.status} ${response.statusText}`);
+      }
+
+      const repos = await response.json();
+      return new Response(JSON.stringify(repos), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    // Get repo contents
+    // Get repository contents
     if (action === 'contents') {
+      if (!owner || !repo) {
+        throw new Error('Owner and repo are required');
+      }
+
       const url = `https://api.github.com/repos/${owner}/${repo}/contents/${path || ''}`;
       const response = await fetch(url, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Accept': 'application/vnd.github.v3+json',
+          'User-Agent': 'AI-Assist-IDE'
         },
       });
 
-      const data = await response.json();
-      return new Response(JSON.stringify(data), {
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('GitHub API error:', response.status, errorText);
+        throw new Error(`Failed to fetch contents: ${response.status} ${response.statusText}`);
+      }
+
+      const contents = await response.json();
+      return new Response(JSON.stringify(contents), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
     // Get file content
     if (action === 'file') {
+      if (!owner || !repo || !path) {
+        throw new Error('Owner, repo, and path are required');
+      }
+
       const url = `https://api.github.com/repos/${owner}/${repo}/contents/${path}`;
       const response = await fetch(url, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Accept': 'application/vnd.github.v3.raw',
+          'User-Agent': 'AI-Assist-IDE'
         },
       });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('GitHub API error:', response.status, errorText);
+        throw new Error(`Failed to fetch file: ${response.status} ${response.statusText}`);
+      }
 
       const content = await response.text();
       return new Response(JSON.stringify({ content }), {
@@ -88,9 +93,11 @@ serve(async (req) => {
       });
     }
 
-    throw new Error('Invalid action');
+    throw new Error(`Invalid action: ${action}`);
 
   } catch (error) {
+    console.error('Error in github-auth function:', error);
+    
     const message = error instanceof Error ? error.message : 'An error occurred';
     return new Response(JSON.stringify({ error: message }), {
       status: 400,
