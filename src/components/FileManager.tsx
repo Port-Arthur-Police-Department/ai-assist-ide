@@ -291,7 +291,10 @@ export const FileManager = ({
                       className={`flex items-center justify-between p-2 rounded hover:bg-accent cursor-pointer ${
                         currentFile.name === file.name ? "bg-accent" : ""
                       }`}
-                      onClick={() => onFileSelect(file)}
+                      onClick={() => {
+                        onFileSelect(file);
+                        onOpenChange(false); // Close the dialog after selection
+                      }}
                     >
                       <div className="flex items-center gap-2">
                         <FileCode className="h-4 w-4 text-primary" />
