@@ -15,9 +15,10 @@ interface ChatPanelProps {
   code: string;
   language: string;
   onApplyCode: (code: string) => void;
+  onOpenSettings?: () => void;
 }
 
-export const ChatPanel = ({ code, language, onApplyCode }: ChatPanelProps) => {
+export const ChatPanel = ({ code, language, onApplyCode, onOpenSettings }: ChatPanelProps) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -32,12 +33,42 @@ export const ChatPanel = ({ code, language, onApplyCode }: ChatPanelProps) => {
 
   // Simple mock AI response for when Edge Function is not available
   const getMockAIResponse = (userInput: string, currentCode: string, currentLanguage: string): string => {
-    const responses = [
-      `I can see you're working with ${currentLanguage} code! Currently, the AI assistant is being set up.\n\nYour code:\n\`\`\`${currentLanguage}\n${currentCode}\n\`\`\`\n\nTo enable full AI features, please deploy the Edge Function in your Supabase project.`,
-      `Thanks for your message about "${userInput}". The AI functionality requires the Edge Function to be deployed.\n\nYou can deploy it by running:\n\`\`\`bash\nsupabase functions deploy ai-assist\n\`\`\``,
-      `I'd love to help you with your ${currentLanguage} code! Currently, the backend AI service is being configured.\n\nIn the meantime, you can:\n1. Deploy the Edge Function\n2. Add your API keys in settings\n3. Start chatting with AI!`
-    ];
-    return responses[Math.floor(Math.random() * responses.length)];
+    // More helpful responses based on user input
+    if (userInput.toLowerCase().includes('help') || userInput.toLowerCase().includes('how')) {
+      return `## Getting Started with AI Assistant 🚀
+
+I can help you with your ${currentLanguage} code! To enable full AI features:
+
+1. **Click the gear icon** ⚙️ in the top-right of this panel
+2. **Enable at least one AI provider** (OpenAI, Anthropic, Gemini, or DeepSeek)
+3. **Add your API key** for the enabled provider
+4. **Start chatting!**
+
+**Language:** ${currentLanguage}
+
+Try asking me to:
+- Explain the code
+- Suggest improvements  
+- Help debug issues
+- Generate new features`;
+    }
+
+    // Default helpful response
+    return `## Welcome to AI Assist! 👋
+
+I see you're working with **${currentLanguage}** code. The AI assistant is ready to help!
+
+**To unlock full AI capabilities:**
+1. Open Settings (gear icon ⚙️)
+2. Enable your preferred AI provider
+3. Add your API key
+
+**Quick tips:**
+- Ask me to explain, improve, or debug your code
+- Use "Apply Code" to insert AI suggestions
+- I can help with multiple programming languages
+
+Your current code is ${currentCode.length} characters long. Need help with anything specific?`;
   };
 
   const sendMessage = async () => {
@@ -202,10 +233,14 @@ export const ChatPanel = ({ code, language, onApplyCode }: ChatPanelProps) => {
     return match ? match[1].trim() : null;
   };
 
-  const openSettings = () => {
-    // Trigger settings dialog open - you might need to adjust this based on your app structure
-    const event = new CustomEvent('open-settings');
-    window.dispatchEvent(event);
+  const handleSettingsClick = () => {
+    if (onOpenSettings) {
+      onOpenSettings();
+    } else {
+      // Fallback to custom event
+      const event = new CustomEvent('open-settings');
+      window.dispatchEvent(event);
+    }
   };
 
   return (
@@ -218,7 +253,7 @@ export const ChatPanel = ({ code, language, onApplyCode }: ChatPanelProps) => {
         <Button
           variant="ghost"
           size="sm"
-          onClick={openSettings}
+          onClick={handleSettingsClick}
           className="h-8 w-8 p-0"
         >
           <Settings className="h-4 w-4" />
