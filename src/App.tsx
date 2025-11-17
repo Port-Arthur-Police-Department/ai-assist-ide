@@ -3,10 +3,12 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
 import { supabase } from "@/integrations/supabase/client";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
+import Profile from "./pages/Profile";
 import type { User, Session } from '@supabase/supabase-js';
 
 const queryClient = new QueryClient();
@@ -57,15 +59,17 @@ const App = () => {
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          {user && session ? (
-            <Index user={user} session={session} onSignOut={handleSignOut} />
-          ) : (
-            <Auth onAuthSuccess={handleAuthSuccess} />
-          )}
-        </TooltipProvider>
+        <BrowserRouter>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            <Routes>
+              <Route path="/auth" element={!user ? <Auth onAuthSuccess={handleAuthSuccess} /> : <Navigate to="/" replace />} />
+              <Route path="/" element={user && session ? <Index user={user} session={session} onSignOut={handleSignOut} /> : <Navigate to="/auth" replace />} />
+              <Route path="/profile" element={user && session ? <Profile /> : <Navigate to="/auth" replace />} />
+            </Routes>
+          </TooltipProvider>
+        </BrowserRouter>
       </ThemeProvider>
     </QueryClientProvider>
   );

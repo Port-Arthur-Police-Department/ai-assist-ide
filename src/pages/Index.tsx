@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
 import { CodeEditor } from "@/components/CodeEditor";
 import { PreviewPanel } from "@/components/PreviewPanel";
@@ -9,8 +10,8 @@ import { GitHubConnect } from "@/components/GitHubConnect";
 import { VersionHistory } from "@/components/VersionHistory";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Button } from "@/components/ui/button";
-import { Settings, Code2, FileCode, FolderOpen, Github, History, Eye, EyeOff, Monitor, MessageSquare, LogOut } from "lucide-react";
-import type { User, Session } from '@supabase/supabase-js';
+import { Settings, Code2, FileCode, FolderOpen, Github, History, Eye, EyeOff, Monitor, MessageSquare, LogOut, User } from "lucide-react";
+import type { User as UserType, Session } from '@supabase/supabase-js';
 import {
   Select,
   SelectContent,
@@ -102,12 +103,13 @@ interface FileItem {
 }
 
 interface IndexProps {
-  user: User;
+  user: UserType;
   session: Session;
   onSignOut: () => Promise<void>;
 }
 
 const Index = ({ user, session, onSignOut }: IndexProps) => {
+  const navigate = useNavigate();
   const [files, setFiles] = useState<FileItem[]>([
     {
       name: "index.html",
@@ -344,6 +346,15 @@ const Index = ({ user, session, onSignOut }: IndexProps) => {
           <div className="h-6 w-px bg-border" />
 
           <ThemeToggle />
+
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => navigate("/profile")}
+            title="Profile"
+          >
+            <User className="h-5 w-5" />
+          </Button>
 
           <Button
             variant="ghost"
